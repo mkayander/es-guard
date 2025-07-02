@@ -16,8 +16,10 @@
     "start": "node dist/cli.js",
     "test": "npm run build && vitest",
     "test:run": "npm run build && vitest run",
-    "lint": "eslint src/**/*.ts --config eslintrs.js",
+    "lint": "eslint src/**/*.ts",
+    "lint:check": "eslint src/**/*.ts --max-warnings 0",
     "format": "prettier --write src/**/*.ts",
+    "format:check": "prettier --check src/**/*.ts",
     "clean": "rimraf dist",
     "prepublishOnly": "npm run clean && npm run build"
   },

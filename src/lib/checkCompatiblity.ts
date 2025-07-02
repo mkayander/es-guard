@@ -3,9 +3,7 @@ import { createESLintConfig } from "./createESLintConfig.js";
 import { Config, Violation } from "./types.js";
 import { walkDir } from "./walkDir.js";
 
-export const checkCompatibility = async (
-  config: Config
-): Promise<Violation[]> => {
+export const checkCompatibility = async (config: Config): Promise<Violation[]> => {
   const jsFiles = walkDir(config.dir);
 
   if (jsFiles.length === 0) {

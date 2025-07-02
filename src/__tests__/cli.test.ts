@@ -73,13 +73,10 @@ describe("CLI Tests", () => {
     const testFile = path.join(testDir, "test.js");
     fs.writeFileSync(testFile, 'console.log("test");');
 
-    const result = execSync(
-      `node dist/cli.js -t 2015 -b "ie 11" "${testDir}"`,
-      {
-        encoding: "utf8",
-        cwd: process.cwd(),
-      }
-    );
+    const result = execSync(`node dist/cli.js -t 2015 -b "ie 11" "${testDir}"`, {
+      encoding: "utf8",
+      cwd: process.cwd(),
+    });
     expect(result).toContain("ES-Guard");
     expect(result).toContain("Scanning directory");
   });

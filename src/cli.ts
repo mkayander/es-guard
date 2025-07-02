@@ -69,8 +69,7 @@ const parseArgs = (): CLIOptions => {
         break;
       case "-b":
       case "--browsers":
-        options.browsers =
-          args[++i] || "> 1%, last 2 versions, not dead, ie 11";
+        options.browsers = args[++i] || "> 1%, last 2 versions, not dead, ie 11";
         break;
       default:
         if (!arg.startsWith("-")) {
@@ -103,9 +102,7 @@ const validateOptions = (options: CLIOptions): void => {
 
   // Validate ES target format
   if (!/^\d{4}$/.test(options.target)) {
-    throw new Error(
-      `Invalid ES target: "${options.target}". Expected format: YYYY (e.g., 2015, 2020)`
-    );
+    throw new Error(`Invalid ES target: "${options.target}". Expected format: YYYY (e.g., 2015, 2020)`);
   }
 
   if (!options.browsers) {
@@ -142,16 +139,12 @@ const main = async (): Promise<void> => {
     });
 
     if (violations.length > 0) {
-      console.error(
-        `❌ Found ${violations.length} file(s) with compatibility issues:`
-      );
+      console.error(`❌ Found ${violations.length} file(s) with compatibility issues:`);
 
       for (const violation of violations) {
         console.error(`\n📄 ${violation.file}:`);
         for (const message of violation.messages) {
-          console.error(
-            `   ${message.line}:${message.column} - ${message.message} (${message.ruleId})`
-          );
+          console.error(`   ${message.line}:${message.column} - ${message.message} (${message.ruleId})`);
         }
       }
 
