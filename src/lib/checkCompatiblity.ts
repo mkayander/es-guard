@@ -17,14 +17,17 @@ export const checkCompatibility = async (config: Config): Promise<Violation[]> =
   for (const file of jsFiles) {
     try {
       const results = await eslint.lintFiles([file]);
-
-      for (const result of results) {
-        if (result.messages.length > 0) {
-          violations.push({
-            file: result.filePath,
-            messages: result.messages,
-          });
+      if (Array.isArray(results)) {
+        for (const result of results) {
+          if (result.messages.length > 0) {
+            violations.push({
+              file: result.filePath,
+              messages: result.messages,
+            });
+          }
         }
+      } else {
+        console.warn(`Warning: ESLint did not return an array for file ${file}.`, results);
       }
     } catch (error) {
       console.warn(`Warning: Could not lint file ${file}:`, error);

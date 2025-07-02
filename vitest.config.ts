@@ -8,7 +8,7 @@ export default defineConfig({
     exclude: ["node_modules", "dist"],
     coverage: {
       reporter: ["text", "lcov"],
-      exclude: ["**/__tests__/**"],
+      exclude: ["**/__tests__/**", "dist/**", "src/cli.ts", "src/lib/types.ts", "eslint.config.js", "vitest.config.ts"],
     },
   },
   esbuild: {

@@ -5,9 +5,10 @@ import { checkCompatibility } from "../lib/checkCompatiblity.js";
 import type { Config } from "../lib/types.js";
 
 // Mock ESLint to avoid actual linting during tests
+const mockLintFiles = vi.fn();
 vi.mock("eslint", () => ({
   ESLint: vi.fn().mockImplementation(() => ({
-    lintFiles: vi.fn(),
+    lintFiles: mockLintFiles,
   })),
 }));
 
@@ -19,6 +20,8 @@ describe("checkCompatibility", () => {
     if (!fs.existsSync(testDir)) {
       fs.mkdirSync(testDir, { recursive: true });
     }
+    // Reset mock before each test
+    mockLintFiles.mockReset();
   });
 
   afterEach(() => {
@@ -51,6 +54,33 @@ describe("checkCompatibility", () => {
     fs.writeFileSync(testFile2, 'console.log("test2");');
     fs.writeFileSync(testFile3, 'console.log("test3");');
 
+    // Mock responses for each file
+    mockLintFiles
+      .mockResolvedValueOnce([
+        {
+          filePath: testFile1,
+          messages: [],
+          errorCount: 0,
+          warningCount: 0,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          filePath: testFile2,
+          messages: [],
+          errorCount: 0,
+          warningCount: 0,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          filePath: testFile3,
+          messages: [],
+          errorCount: 0,
+          warningCount: 0,
+        },
+      ]);
+
     const config: Config = {
       dir: testDir,
       target: "2015",
@@ -58,8 +88,13 @@ describe("checkCompatibility", () => {
     };
 
     const violations = await checkCompatibility(config);
-    // Should find 3 JavaScript files
-    expect(violations.length).toBeGreaterThanOrEqual(0);
+
+    // Should process 3 JavaScript files (even if no violations found)
+    expect(mockLintFiles).toHaveBeenCalledTimes(3);
+    expect(mockLintFiles).toHaveBeenCalledWith([testFile1]);
+    expect(mockLintFiles).toHaveBeenCalledWith([testFile2]);
+    expect(mockLintFiles).toHaveBeenCalledWith([testFile3]);
+    expect(violations).toEqual([]);
   });
 
   test("should ignore non-JavaScript files", async () => {
@@ -74,6 +109,16 @@ describe("checkCompatibility", () => {
     fs.writeFileSync(jsonFile, '{"test": "json"}');
     fs.writeFileSync(txtFile, "text file");
 
+    // Mock response for the JS file
+    mockLintFiles.mockResolvedValueOnce([
+      {
+        filePath: jsFile,
+        messages: [],
+        errorCount: 0,
+        warningCount: 0,
+      },
+    ]);
+
     const config: Config = {
       dir: testDir,
       target: "2015",
@@ -81,8 +126,11 @@ describe("checkCompatibility", () => {
     };
 
     const violations = await checkCompatibility(config);
-    // Should only process .js files
-    expect(violations.length).toBeGreaterThanOrEqual(0);
+
+    // Should only process the .js file (ignore .ts, .json, .txt)
+    expect(mockLintFiles).toHaveBeenCalledTimes(1);
+    expect(mockLintFiles).toHaveBeenCalledWith([jsFile]);
+    expect(violations).toEqual([]);
   });
 
   test("should handle directory that does not exist", async () => {
