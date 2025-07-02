@@ -49,9 +49,10 @@ describe("CLI Tests", () => {
         cwd: process.cwd(),
         stdio: ["pipe", "pipe", "pipe"],
       });
-    } catch (error: any) {
-      expect(error.status).toBe(1);
-      expect(error.stderr).toContain("does not exist");
+    } catch (error: unknown) {
+      const execError = error as { status: number; stderr: string };
+      expect(execError.status).toBe(1);
+      expect(execError.stderr).toContain("does not exist");
     }
   });
 
@@ -62,9 +63,10 @@ describe("CLI Tests", () => {
         cwd: process.cwd(),
         stdio: ["pipe", "pipe", "pipe"],
       });
-    } catch (error: any) {
-      expect(error.status).toBe(1);
-      expect(error.stderr).toContain("Invalid ES target");
+    } catch (error: unknown) {
+      const execError = error as { status: number; stderr: string };
+      expect(execError.status).toBe(1);
+      expect(execError.stderr).toContain("Invalid ES target");
     }
   });
 

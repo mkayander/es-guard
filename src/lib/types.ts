@@ -1,6 +1,8 @@
+import type { Linter } from "eslint";
+
 export type Violation = {
   file: string;
-  messages: any[];
+  messages: Linter.LintMessage[];
 };
 
 export type Config = {
