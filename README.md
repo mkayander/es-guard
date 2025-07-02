@@ -1,5 +1,7 @@
 # ES-Guard
 
+[![codecov](https://codecov.io/gh/mkayander/es-guard/branch/main/graph/badge.svg)](https://codecov.io/gh/mkayander/es-guard)
+
 A TypeScript-based tool to check JavaScript compatibility with target environments using ESLint.
 
 ## Features
@@ -60,16 +62,16 @@ es-guard --version
 ### Programmatic Usage
 
 ```typescript
-import { checkCompatibility } from 'es-guard';
+import { checkCompatibility } from "es-guard";
 
 const violations = await checkCompatibility({
-  dir: 'dist',
-  target: '2015',
-  browsers: '> 1%, last 2 versions, not dead, ie 11',
+  dir: "dist",
+  target: "2015",
+  browsers: "> 1%, last 2 versions, not dead, ie 11",
 });
 
 if (violations.length > 0) {
-  console.log('Compatibility issues found:', violations);
+  console.log("Compatibility issues found:", violations);
 }
 ```
 
@@ -86,7 +88,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: "18"
       - run: npm install
       - run: npm run build
       - run: npx es-guard -t 2015 dist
