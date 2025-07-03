@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/mkayander/es-guard/compare/v1.1.0...v1.2.0) (2025-07-03)
+
+
+### Features
+
+* Add JUnit test reporting and coverage options to package.json scripts and update CI workflow to utilize new test commands for improved test output and coverage tracking. ([d479112](https://github.com/mkayander/es-guard/commit/d479112243d36b044bfe9bb011bd37e990fd7810))
+
 # [1.1.0](https://github.com/mkayander/es-guard/compare/v1.0.0...v1.1.0) (2025-07-03)
 
 
