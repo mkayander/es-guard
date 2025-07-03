@@ -41,16 +41,30 @@ jobs:
       - name: Run tests with JUnit output and coverage
         run: pnpm test:junit:coverage
 
-      - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
-        uses: codecov/test-results-action@v1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Verify test report exists
+        run: |
+          echo "Checking for test report file..."
+          ls -la test-report.junit.xml
+          echo "Test report file size:"
+          wc -l test-report.junit.xml
+          echo "Test report first few lines:"
+          head -5 test-report.junit.xml
+          echo "Test report last few lines:"
+          tail -5 test-report.junit.xml
+          echo "Validating XML format..."
+          python3 -c "import xml.etree.ElementTree as ET; ET.parse('test-report.junit.xml'); print('XML is valid')" || echo "XML validation failed"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: test-report.junit.xml
 
   test-matrix:
     runs-on: ubuntu-latest
