@@ -11,6 +11,12 @@ export const checkCompatibility = async (config: Config): Promise<Violation[]> =
     return [];
   }
 
+  // Set BROWSERSLIST env variable to override Browserslist file detection
+  const originalBrowserslistEnv = process.env.BROWSERSLIST;
+  if (config.browsers) {
+    process.env.BROWSERSLIST = config.browsers;
+  }
+
   const eslint = new ESLint(createESLintConfig(config.target, config.browsers));
   const violations: Violation[] = [];
 
@@ -32,6 +38,13 @@ export const checkCompatibility = async (config: Config): Promise<Violation[]> =
     } catch (error) {
       console.warn(`Warning: Could not lint file ${file}:`, error);
     }
+  }
+
+  // Restore original BROWSERSLIST env variable
+  if (originalBrowserslistEnv !== undefined) {
+    process.env.BROWSERSLIST = originalBrowserslistEnv;
+  } else {
+    delete process.env.BROWSERSLIST;
   }
 
   return violations;

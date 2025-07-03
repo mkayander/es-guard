@@ -130,7 +130,7 @@ describe("CLI Tests", () => {
       cwd: testDir,
     });
     expect(result).toContain("ES-Guard");
-    expect(result).toContain("Target ES version: 2018 (auto-detected)");
+    expect(result).toContain("Target ES version: 2018 (auto-detected from package.json)");
   });
 
   test("should auto-detect target from tsconfig.json", () => {
@@ -152,7 +152,7 @@ describe("CLI Tests", () => {
       cwd: testDir,
     });
     expect(result).toContain("ES-Guard");
-    expect(result).toContain("Target ES version: 2020 (auto-detected)");
+    expect(result).toContain("Target ES version: 2020 (auto-detected from tsconfig.json)");
   });
 
   test("should fail when no target specified and no config files found", () => {
@@ -190,6 +190,6 @@ describe("CLI Tests", () => {
       cwd: testDir,
     });
     expect(result).toContain("ES-Guard");
-    expect(result).toContain("Target ES version: 2019 (auto-detected)");
+    expect(result).toContain("Target ES version: 2019 (auto-detected from package.json)");
   });
 });

@@ -30,7 +30,7 @@ describe("detectTarget", () => {
         }),
       );
 
-      expect(detectTarget(tempDir)).toBe("2015");
+      expect(detectTarget(tempDir)).toEqual({ target: "2015", source: "package.json" });
     });
 
     it("should detect target from browserslist array", () => {
@@ -41,7 +41,7 @@ describe("detectTarget", () => {
         }),
       );
 
-      expect(detectTarget(tempDir)).toBe("2020");
+      expect(detectTarget(tempDir)).toEqual({ target: "2020", source: "package.json" });
     });
 
     it("should not detect target from engines.node (dev dependency)", () => {
@@ -64,7 +64,7 @@ describe("detectTarget", () => {
         }),
       );
 
-      expect(detectTarget(tempDir)).toBe("2018");
+      expect(detectTarget(tempDir)).toEqual({ target: "2018", source: "package.json" });
     });
 
     it("should return null for package.json without target info", () => {
@@ -89,7 +89,7 @@ describe("detectTarget", () => {
         }),
       );
 
-      expect(detectTarget(tempDir)).toBe("2020");
+      expect(detectTarget(tempDir)).toEqual({ target: "2020", source: "tsconfig.json" });
     });
 
     it("should detect ES6 target", () => {
@@ -100,7 +100,7 @@ describe("detectTarget", () => {
         }),
       );
 
-      expect(detectTarget(tempDir)).toBe("2015");
+      expect(detectTarget(tempDir)).toEqual({ target: "2015", source: "tsconfig.json" });
     });
 
     it("should detect ES5 target", () => {
@@ -111,7 +111,7 @@ describe("detectTarget", () => {
         }),
       );
 
-      expect(detectTarget(tempDir)).toBe("2009");
+      expect(detectTarget(tempDir)).toEqual({ target: "2009", source: "tsconfig.json" });
     });
 
     it("should return null for tsconfig.json without target", () => {
@@ -143,7 +143,7 @@ module.exports = {
 `,
       );
 
-      expect(detectTarget(tempDir)).toBe("2017");
+      expect(detectTarget(tempDir)).toEqual({ target: "2017", source: "babel.config.js" });
     });
 
     it("should return null for babel.config.js without preset-env", () => {
@@ -178,7 +178,7 @@ module.exports = {
         }),
       );
 
-      expect(detectTarget(tempDir)).toBe("2019");
+      expect(detectTarget(tempDir)).toEqual({ target: "2019", source: ".babelrc" });
     });
 
     it("should return null for .babelrc without preset-env", () => {
@@ -206,7 +206,7 @@ export default {
 `,
       );
 
-      expect(detectTarget(tempDir)).toBe("2021");
+      expect(detectTarget(tempDir)).toEqual({ target: "2021", source: "vite.config.js" });
     });
 
     it("should detect esbuild target with different quotes", () => {
@@ -221,7 +221,7 @@ export default {
 `,
       );
 
-      expect(detectTarget(tempDir)).toBe("2018");
+      expect(detectTarget(tempDir)).toEqual({ target: "2018", source: "vite.config.js" });
     });
 
     it("should return null for vite.config.js without esbuild target", () => {
@@ -249,7 +249,7 @@ module.exports = {
 `,
       );
 
-      expect(detectTarget(tempDir)).toBe("2020");
+      expect(detectTarget(tempDir)).toEqual({ target: "2020", source: "webpack.config.js" });
     });
 
     it("should return null for webpack.config.js without target", () => {
@@ -281,7 +281,7 @@ module.exports = {
         }),
       );
 
-      expect(detectTarget(tempDir)).toBe("2019");
+      expect(detectTarget(tempDir)).toEqual({ target: "2019", source: "package.json" });
     });
 
     it("should prioritize tsconfig.json over babel.config.js", () => {
@@ -304,7 +304,7 @@ module.exports = {
 `,
       );
 
-      expect(detectTarget(tempDir)).toBe("2018");
+      expect(detectTarget(tempDir)).toEqual({ target: "2018", source: "tsconfig.json" });
     });
 
     it("should return null when no config files exist", () => {
@@ -340,7 +340,7 @@ module.exports = {
         }),
       );
 
-      expect(detectTarget(tempDir)).toBe("2020");
+      expect(detectTarget(tempDir)).toEqual({ target: "2020", source: "tsconfig.json" });
     });
   });
 

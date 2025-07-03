@@ -6,6 +6,7 @@ import packageJson from "../package.json" with { type: "json" };
 import { checkCompatibility } from "./lib/checkCompatiblity.js";
 import { getBrowserTargetsFromString } from "./lib/getBrowserTargets.js";
 import { detectTarget } from "./lib/detectTarget.js";
+import path from "path";
 
 const version = packageJson.version;
 
@@ -101,15 +102,12 @@ program.action(async (directory: string, options: { target?: string; browsers?: 
     let targetSource = "specified";
 
     if (!target) {
-      // Try to detect target from the directory being scanned, then from CWD
-      let detectedTarget = detectTarget(directory);
-      if (!detectedTarget && directory !== "." && directory !== process.cwd()) {
-        detectedTarget = detectTarget(process.cwd());
-      }
+      // Try to detect target from current working directory
+      const detectedResult = detectTarget(process.cwd());
 
-      if (detectedTarget) {
-        target = detectedTarget;
-        targetSource = "auto-detected";
+      if (detectedResult) {
+        target = detectedResult.target;
+        targetSource = `auto-detected from ${detectedResult.source}`;
       } else {
         console.error("Error: No target specified and could not auto-detect from project configuration files.");
         console.error("Please specify a target with --target or ensure your project has a valid configuration file.");
@@ -118,7 +116,42 @@ program.action(async (directory: string, options: { target?: string; browsers?: 
     }
 
     // Determine browser targets
-    const browserTargets = options.browsers || getBrowserTargetsFromString(target);
+    let browserTargets: string;
+    if (options.browsers) {
+      browserTargets = options.browsers;
+    } else {
+      // If auto-detected from package.json or browserslist file, check for ES version strings
+      if (targetSource.startsWith("auto-detected from ")) {
+        const configFile = targetSource.replace("auto-detected from ", "");
+        let browserslistEntries: string[] = [];
+        if (configFile === "package.json") {
+          const pkgPath = path.join(process.cwd(), "package.json");
+          if (fs.existsSync(pkgPath)) {
+            const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
+            if (pkg.browserslist) {
+              browserslistEntries = Array.isArray(pkg.browserslist) ? pkg.browserslist : [pkg.browserslist];
+            }
+          }
+        } else if (configFile === ".browserslistrc" || configFile === ".browserslist") {
+          const blPath = path.join(process.cwd(), configFile);
+          if (fs.existsSync(blPath)) {
+            browserslistEntries = fs
+              .readFileSync(blPath, "utf-8")
+              .split(/\r?\n/)
+              .map((l: string) => l.trim())
+              .filter((l: string) => l && !l.startsWith("#"));
+          }
+        }
+        const esVersionRegex = /^es\d{1,4}$/i;
+        const invalidEntries = browserslistEntries.filter((entry) => esVersionRegex.test(entry));
+        if (invalidEntries.length > 0) {
+          console.warn(
+            `Warning: Detected ES version string(s) in browserslist (${invalidEntries.join(", ")}). These are not valid Browserslist queries and will be ignored for browser compatibility checks.`,
+          );
+        }
+      }
+      browserTargets = getBrowserTargetsFromString(target);
+    }
 
     console.log(`🔍 ES-Guard v${version}`);
     console.log(`📁 Scanning directory: ${directory}`);
