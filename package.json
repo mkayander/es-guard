@@ -17,12 +17,13 @@
     "test": "npm run build && vitest",
     "test:run": "npm run build && vitest run",
     "coverage": "vitest run --coverage",
+    "coverage:check": "vitest run --coverage --reporter=verbose",
     "lint": "eslint src/**/*.ts",
     "lint:check": "eslint src/**/*.ts --max-warnings 0",
     "format": "prettier --write src/**/*.ts",
     "format:check": "prettier --check src/**/*.ts",
     "clean": "rimraf dist",
-    "prepublishOnly": "npm run clean && npm run build",
+    "prepublishOnly": "npm run clean && npm run build && npm run coverage:check",
     "semantic-release": "semantic-release"
   },
   "keywords": [
