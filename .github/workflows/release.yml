@@ -12,6 +12,13 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
+    # Permissions needed for semantic-release
+    permissions:
+      contents: write # Push commits and tags
+      issues: write # Create/update issues
+      pull-requests: write # Create/update PRs
+      packages: write # Publish to npm (if needed)
+
     steps:
       - uses: actions/checkout@v4
         with:
