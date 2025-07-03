@@ -30,7 +30,7 @@ npm install --save-dev es-guard
 ### From Source
 
 ```bash
-git clone https://github.com/yourusername/es-guard.git
+git clone https://github.com/mkayander/es-guard.git
 cd es-guard
 npm install
 npm run build
@@ -193,6 +193,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Support
 
-- 📖 [Documentation](https://github.com/yourusername/es-guard#readme)
-- 🐛 [Issues](https://github.com/yourusername/es-guard/issues)
-- 💬 [Discussions](https://github.com/yourusername/es-guard/discussions)
+- 📖 [Documentation](https://github.com/mkayander/es-guard#readme)
+- 🐛 [Issues](https://github.com/mkayander/es-guard/issues)
+- 💬 [Discussions](https://github.com/mkayander/es-guard/discussions)
