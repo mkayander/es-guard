@@ -11,6 +11,7 @@ export default defineConfig({
       exclude: [
         "**/__tests__/**",
         "dist/**",
+        "examples/**",
         "src/cli.ts",
         "src/lib/types.ts",
         "eslint.config.js",

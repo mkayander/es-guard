@@ -1,5 +1,5 @@
 {
-  "name": "test-demo",
+  "name": "es-guard-example",
   "version": "1.0.0",
   "browserslist": [
     "es2020",

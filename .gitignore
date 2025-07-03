@@ -82,9 +82,9 @@ out
 .nuxt
 dist
 
-# Test demo directory (needed for tests)
-!test-demo/
-!test-demo/dist/
+# Examples directory (needed for tests)
+!examples/
+!examples/dist/
 
 # Gatsby files
 .cache/
@@ -141,3 +141,5 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+test-report.junit.xml
