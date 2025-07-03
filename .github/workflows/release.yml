@@ -1,14 +1,16 @@
-name: Main
+name: Release
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_run:
+    workflows: ["Main", "Test Matrix"]
+    types:
+      - completed
     branches: [main]
 
 jobs:
-  ci:
+  release:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -16,6 +18,8 @@ jobs:
           # Need to fetch entire commit history to
           # analyze every commit since last release
           fetch-depth: 0
+          # Required for semantic-release to push to the repository
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -29,22 +33,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run linting
-        run: pnpm run lint:check
-
-      - name: Check formatting
-        run: pnpm run format:check
-
       - name: Build project
         run: pnpm run build
 
-      - name: Run tests
-        run: pnpm run test:run
-
-      - name: Run coverage
-        run: pnpm run coverage
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Run semantic-release
+        run: pnpm run semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_ENV: production
