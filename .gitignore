@@ -82,6 +82,10 @@ out
 .nuxt
 dist
 
+# Test demo directory (needed for tests)
+!test-demo/
+!test-demo/dist/
+
 # Gatsby files
 .cache/
 # Comment in the public line in if your project uses Gatsby and not Next.js

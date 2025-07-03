@@ -39,7 +39,7 @@ jobs:
         run: pnpm run build
 
       - name: Run tests
-        run: pnpm run test:run
+        run: pnpm test
 
       - name: Check test coverage
         run: pnpm run coverage:check
@@ -75,7 +75,7 @@ jobs:
         run: pnpm run build
 
       - name: Run tests
-        run: pnpm run test:run
+        run: pnpm test
 
   release:
     runs-on: ubuntu-latest

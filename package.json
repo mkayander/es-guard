@@ -14,8 +14,8 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "start": "node dist/cli.js",
-    "test": "npm run build && vitest",
-    "test:run": "npm run build && vitest run",
+    "test:dev": "npm run build && vitest",
+    "test": "npm run build && vitest run",
     "coverage": "vitest run --coverage",
     "coverage:check": "vitest run --coverage --reporter=verbose",
     "lint": "eslint src/**/*.ts",
@@ -72,5 +72,10 @@
     "url": "https://github.com/mkayander/es-guard/issues"
   },
   "homepage": "https://github.com/mkayander/es-guard#readme",
-  "packageManager": "pnpm@10.12.4+sha512.5ea8b0deed94ed68691c9bad4c955492705c5eeb8a87ef86bc62c74a26b037b08ff9570f108b2e4dbd1dd1a9186fea925e527f141c648e85af45631074680184"
+  "packageManager": "pnpm@10.12.4+sha512.5ea8b0deed94ed68691c9bad4c955492705c5eeb8a87ef86bc62c74a26b037b08ff9570f108b2e4dbd1dd1a9186fea925e527f141c648e85af45631074680184",
+  "browserslist": [
+    "es2020",
+    "> 1%",
+    "last 2 versions"
+  ]
 }

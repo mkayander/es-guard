@@ -1,0 +1,9 @@
+{
+  "name": "test-demo",
+  "version": "1.0.0",
+  "browserslist": [
+    "es2020",
+    "> 1%",
+    "last 2 versions"
+  ]
+}

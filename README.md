@@ -162,7 +162,7 @@ npm run dev
 
 ```bash
 npm test
-npm run test:run
+npm run test
 ```
 
 ### Linting
