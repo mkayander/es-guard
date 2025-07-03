@@ -4,6 +4,7 @@ import * as fs from "fs";
 import packageJson from "../package.json" with { type: "json" };
 import type { CLIOptions } from "./lib/types.js";
 import { checkCompatibility } from "./lib/checkCompatiblity.js";
+import { getBrowserTargetsFromString } from "./lib/getBrowserTargets.js";
 
 const version = packageJson.version;
 
@@ -14,22 +15,25 @@ ES-Guard v${version} - JavaScript Compatibility Checker
 Usage: es-guard [options] [directory]
 
 Options:
-  -t, --target <version>    Target ES version (2015, 2016, 2017, etc.) [default: 2015]
-  -b, --browsers <targets>  Browser targets for compatibility checking [default: "> 1%, last 2 versions, not dead, ie 11"]
+  -t, --target <version>    Target ES version (2015, 2016, 2017, etc. or 6, 7, 8, etc. or "latest") [default: 2015]
+  -b, --browsers <targets>  Browser targets for compatibility checking [optional: auto-determined from target]
   -h, --help               Show this help message
   -v, --version            Show version number
 
 Examples:
-  es-guard                           # Check 'dist' directory with ES2015
-  es-guard build                     # Check 'build' directory with ES2015
-  es-guard -t 2020 build             # Check 'build' directory with ES2020
+  es-guard                           # Check 'dist' directory with ES2015 (auto-determined browsers)
+  es-guard build                     # Check 'build' directory with ES2015 (auto-determined browsers)
+  es-guard -t 2020 build             # Check 'build' directory with ES2020 (auto-determined browsers)
+  es-guard -t 6 build                # Check 'build' directory with ES6 (auto-determined browsers)
+  es-guard -t latest build           # Check 'build' directory with latest ES (auto-determined browsers)
   es-guard --target 2017 --browsers "> 0.5%, last 2 versions" dist
 
 Browser targets use Browserslist format:
-  - "> 1%, last 2 versions, not dead, ie 11" (default)
-  - "> 0.5%, last 2 versions, Firefox ESR, not dead"
-  - "defaults"
-  - "last 1 version"
+  - If not specified, browsers will be auto-determined from the ES target version
+  - "> 1%, last 2 versions, not dead, ie 11" (for ES2015/ES6)
+  - "> 1%, last 2 versions, not dead, not ie 11" (for ES2016-2017/ES7-8)
+  - "> 1%, last 2 versions, not dead, not ie 11, not op_mini all" (for ES2018-2019/ES9-10)
+  - "> 1%, last 2 versions, not dead, not ie 11, not op_mini all, not android < 67" (for ES2020+/ES11+)
 
 Exit codes:
   0 - No compatibility issues found
@@ -46,7 +50,7 @@ const parseArgs = (): CLIOptions => {
   const options: CLIOptions = {
     dir: "dist",
     target: "2015",
-    browsers: "> 1%, last 2 versions, not dead, ie 11",
+    browsers: undefined, // Will be auto-determined if not provided
     help: false,
     version: false,
   };
@@ -69,7 +73,7 @@ const parseArgs = (): CLIOptions => {
         break;
       case "-b":
       case "--browsers":
-        options.browsers = args[++i] || "> 1%, last 2 versions, not dead, ie 11";
+        options.browsers = args[++i];
         break;
       default:
         if (!arg.startsWith("-")) {
@@ -100,14 +104,14 @@ const validateOptions = (options: CLIOptions): void => {
     throw new Error(`"${options.dir}" is not a directory`);
   }
 
-  // Validate ES target format
-  if (!/^\d{4}$/.test(options.target)) {
-    throw new Error(`Invalid ES target: "${options.target}". Expected format: YYYY (e.g., 2015, 2020)`);
+  // Validate ES target format - accept year format (YYYY), numeric format (N), or "latest"
+  if (!/^\d{4}$/.test(options.target) && !/^\d+$/.test(options.target) && options.target !== "latest") {
+    throw new Error(
+      `Invalid ES target: "${options.target}". Expected format: YYYY (e.g., 2015, 2020), numeric (e.g., 6, 11), or "latest"`,
+    );
   }
 
-  if (!options.browsers) {
-    throw new Error("Browser targets are required");
-  }
+  // browsers is now optional - will be auto-determined if not provided
 };
 
 const main = async (): Promise<void> => {
@@ -126,16 +130,19 @@ const main = async (): Promise<void> => {
 
     validateOptions(options);
 
+    // Determine browser targets
+    const browserTargets = options.browsers || getBrowserTargetsFromString(options.target);
+
     console.log(`🔍 ES-Guard v${version}`);
     console.log(`📁 Scanning directory: ${options.dir}`);
     console.log(`🎯 Target ES version: ${options.target}`);
-    console.log(`🌐 Browser targets: ${options.browsers}`);
+    console.log(`🌐 Browser targets: ${browserTargets}${options.browsers ? "" : " (auto-determined)"}`);
     console.log("");
 
     const violations = await checkCompatibility({
       dir: options.dir,
       target: options.target,
-      browsers: options.browsers,
+      browsers: browserTargets,
     });
 
     if (violations.length > 0) {
@@ -161,6 +168,6 @@ const main = async (): Promise<void> => {
 
 // Run the CLI
 main().catch((error) => {
-  console.error("Unhandled error:", error);
+  console.error("Fatal error:", error);
   process.exit(1);
 });

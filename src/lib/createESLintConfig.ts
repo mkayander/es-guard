@@ -1,5 +1,6 @@
 import { ESLint, Linter } from "eslint";
 import compat from "eslint-plugin-compat";
+import { getBrowserTargetsFromString } from "./getBrowserTargets.js";
 
 const isValidEcmaVersion = (ecmaVersion: number): boolean => {
   return ecmaVersion >= 3 && ecmaVersion <= 2025;
@@ -15,9 +16,12 @@ const getEcmaVersion = (target: string): Linter.EcmaVersion => {
   return ecmaVersion as Linter.EcmaVersion;
 };
 
-export const createESLintConfig = (target: string, browsers: string): ESLint.Options => {
+export const createESLintConfig = (target: string, browsers?: string): ESLint.Options => {
   // Convert target year to ECMAScript version number using the validation function
   const ecmaVersion = getEcmaVersion(target);
+
+  // Use provided browsers or auto-determine from target
+  const browserTargets = browsers || getBrowserTargetsFromString(target);
 
   return {
     overrideConfigFile: true,
@@ -34,7 +38,7 @@ export const createESLintConfig = (target: string, browsers: string): ESLint.Opt
           sourceType: "module",
         },
         settings: {
-          browsers: browsers,
+          browsers: browserTargets,
         },
       },
     ],

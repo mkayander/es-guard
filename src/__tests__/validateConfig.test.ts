@@ -13,12 +13,21 @@ describe("validateConfig", () => {
     }
   });
 
-  test("should not throw for valid config", () => {
+  test("should not throw for valid config with browsers", () => {
     fs.mkdirSync(tempDir, { recursive: true });
     const config: Config = {
       dir: tempDir,
       target: "2015",
       browsers: "> 1%, last 2 versions, not dead, ie 11",
+    };
+    expect(() => validateConfig(config)).not.toThrow();
+  });
+
+  test("should not throw for valid config without browsers", () => {
+    fs.mkdirSync(tempDir, { recursive: true });
+    const config: Config = {
+      dir: tempDir,
+      target: "2015",
     };
     expect(() => validateConfig(config)).not.toThrow();
   });
@@ -42,13 +51,12 @@ describe("validateConfig", () => {
     expect(() => validateConfig(config)).toThrow(/Target ES version is required/);
   });
 
-  test("should throw if browsers is missing", () => {
+  test("should not throw if browsers is missing (it's optional)", () => {
     fs.mkdirSync(tempDir, { recursive: true });
-    const config = {
+    const config: Config = {
       dir: tempDir,
       target: "2015",
-      browsers: "",
-    } as Config;
-    expect(() => validateConfig(config)).toThrow(/Browser targets are required/);
+    };
+    expect(() => validateConfig(config)).not.toThrow();
   });
 });

@@ -9,8 +9,4 @@ export const validateConfig = (config: Config): void => {
   if (!config.target) {
     throw new Error("Target ES version is required");
   }
-
-  if (!config.browsers) {
-    throw new Error("Browser targets are required");
-  }
 };

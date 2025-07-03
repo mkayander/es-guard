@@ -43,6 +43,17 @@ describe("checkCompatibility", () => {
     expect(violations).toEqual([]);
   });
 
+  test("should work with auto-determined browsers", async () => {
+    const config: Config = {
+      dir: testDir,
+      target: "2015",
+      // browsers field omitted - should be auto-determined
+    };
+
+    const violations = await checkCompatibility(config);
+    expect(violations).toEqual([]);
+  });
+
   test("should find JavaScript files in directory", async () => {
     // Create test JavaScript files
     const testFile1 = path.join(testDir, "test1.js");
