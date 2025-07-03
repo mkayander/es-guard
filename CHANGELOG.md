@@ -1,3 +1,11 @@
+# [1.1.0](https://github.com/mkayander/es-guard/compare/v1.0.0...v1.1.0) (2025-07-03)
+
+
+### Features
+
+* Enhance JSON file parsing with type guards for package.json, tsconfig.json, and .babelrc. Add warnings for invalid configurations to improve error handling and user feedback. ([9c6a4fd](https://github.com/mkayander/es-guard/commit/9c6a4fd56f41552fa7b752174d83b5983ecb705a))
+* Remove .npmignore file to streamline package publishing process and eliminate unnecessary exclusions. ([8d36a64](https://github.com/mkayander/es-guard/commit/8d36a645816fadd9bbb0c7678d99db28ba44fc06))
+
 # 1.0.0 (2025-07-03)
 
 
