@@ -53,9 +53,30 @@ const TARGET_MAP: Record<string, string> = {
 /**
  * Helper to read and parse JSON file safely
  */
-const readJsonFile = (filePath: string): any => {
+const readJsonFile = (filePath: string): unknown => {
   const content = fs.readFileSync(filePath, "utf-8");
   return JSON.parse(content);
+};
+
+/**
+ * Type guard for package.json structure
+ */
+const isPackageJson = (obj: unknown): obj is { browserslist?: string | string[] } => {
+  return typeof obj === "object" && obj !== null && "browserslist" in obj;
+};
+
+/**
+ * Type guard for tsconfig.json structure
+ */
+const isTsConfig = (obj: unknown): obj is { compilerOptions?: { target?: string } } => {
+  return typeof obj === "object" && obj !== null && "compilerOptions" in obj;
+};
+
+/**
+ * Type guard for .babelrc structure
+ */
+const isBabelRc = (obj: unknown): obj is { presets?: Array<[string, { targets?: { browsers?: string[] } }]> } => {
+  return typeof obj === "object" && obj !== null && "presets" in obj;
 };
 
 /**
@@ -109,6 +130,13 @@ export const detectTarget = (cwd: string = process.cwd()): { target: string; sou
 const parsePackageJson = (filePath: string): string | null => {
   const pkg = readJsonFile(filePath);
 
+  if (!isPackageJson(pkg)) {
+    console.warn(
+      `Warning: ${filePath} does not look like a valid package.json (missing or invalid browserslist field).`,
+    );
+    return null;
+  }
+
   // Check for browserslist field
   if (pkg.browserslist) {
     const browserslist = Array.isArray(pkg.browserslist) ? pkg.browserslist : [pkg.browserslist];
@@ -135,6 +163,13 @@ const parsePackageJson = (filePath: string): string | null => {
  */
 const parseTsConfig = (filePath: string): string | null => {
   const config = readJsonFile(filePath);
+
+  if (!isTsConfig(config)) {
+    console.warn(
+      `Warning: ${filePath} does not look like a valid tsconfig.json (missing or invalid compilerOptions field).`,
+    );
+    return null;
+  }
 
   if (config.compilerOptions?.target) {
     const target = config.compilerOptions.target;
@@ -171,6 +206,11 @@ const parseBabelConfig = (filePath: string): string | null => {
  */
 const parseBabelRc = (filePath: string): string | null => {
   const config = readJsonFile(filePath);
+
+  if (!isBabelRc(config)) {
+    console.warn(`Warning: ${filePath} does not look like a valid .babelrc (missing or invalid presets field).`);
+    return null;
+  }
 
   if (config.presets) {
     for (const preset of config.presets) {
