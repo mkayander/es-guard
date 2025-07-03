@@ -1,13 +1,10 @@
 import { ESLint, Linter } from "eslint";
 import compat from "eslint-plugin-compat";
-import { getBrowserTargetsFromString } from "./getBrowserTargets.js";
-
-const isValidEcmaVersion = (ecmaVersion: number): boolean => {
-  return ecmaVersion >= 3 && ecmaVersion <= 2025;
-};
+import { getBrowserTargetsFromString, parseEcmaVersion } from "./getBrowserTargets.js";
+import { isValidEcmaVersion } from "./isValidEcmaVersion.js";
 
 const getEcmaVersion = (target: string): Linter.EcmaVersion => {
-  const ecmaVersion = parseInt(target) - 2009; // ES2015 = 6, ES2020 = 11, etc.
+  const ecmaVersion = parseEcmaVersion(target);
 
   if (!isValidEcmaVersion(ecmaVersion)) {
     throw new Error(`Invalid ECMAScript version: ${ecmaVersion}. Target year ${target} is not supported.`);

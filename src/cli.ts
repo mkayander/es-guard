@@ -1,24 +1,32 @@
 #!/usr/bin/env node
 
+import { Command } from "commander";
 import * as fs from "fs";
 import packageJson from "../package.json" with { type: "json" };
-import type { CLIOptions } from "./lib/types.js";
 import { checkCompatibility } from "./lib/checkCompatiblity.js";
 import { getBrowserTargetsFromString } from "./lib/getBrowserTargets.js";
 
 const version = packageJson.version;
 
-const showHelp = () => {
-  console.log(`
-ES-Guard v${version} - JavaScript Compatibility Checker
+// Create the main program
+const program = new Command();
 
-Usage: es-guard [options] [directory]
-
-Options:
-  -t, --target <version>    Target ES version (2015, 2016, 2017, etc. or 6, 7, 8, etc. or "latest") [default: 2015]
-  -b, --browsers <targets>  Browser targets for compatibility checking [optional: auto-determined from target]
-  -h, --help               Show this help message
-  -v, --version            Show version number
+// Configure the program
+program
+  .name("es-guard")
+  .description(
+    "JavaScript Compatibility Checker - Check if your JavaScript code is compatible with target environments",
+  )
+  .version(version)
+  .argument("[directory]", "Directory to scan for JavaScript files", "dist")
+  .option("-t, --target <version>", "Target ES version (2015, 2016, 2017, etc. or 6, 7, 8, etc. or 'latest')", "2015")
+  .option(
+    "-b, --browsers <targets>",
+    "Browser targets for compatibility checking (optional: auto-determined from target)",
+  )
+  .addHelpText(
+    "after",
+    `
 
 Examples:
   es-guard                           # Check 'dist' directory with ES2015 (auto-determined browsers)
@@ -38,109 +46,49 @@ Browser targets use Browserslist format:
 Exit codes:
   0 - No compatibility issues found
   1 - Compatibility issues found or error occurred
-`);
-};
+`,
+  );
 
-const showVersion = () => {
-  console.log(`ES-Guard v${version}`);
-};
-
-const parseArgs = (): CLIOptions => {
-  const args = process.argv.slice(2);
-  const options: CLIOptions = {
-    dir: "dist",
-    target: "2015",
-    browsers: undefined, // Will be auto-determined if not provided
-    help: false,
-    version: false,
-  };
-
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-
-    switch (arg) {
-      case "-h":
-      case "--help":
-        options.help = true;
-        break;
-      case "-v":
-      case "--version":
-        options.version = true;
-        break;
-      case "-t":
-      case "--target":
-        options.target = args[++i] || "2015";
-        break;
-      case "-b":
-      case "--browsers":
-        options.browsers = args[++i];
-        break;
-      default:
-        if (!arg.startsWith("-")) {
-          options.dir = arg;
-        } else {
-          console.error(`Unknown option: ${arg}`);
-          console.error("Use --help for usage information");
-          process.exit(1);
-        }
-        break;
-    }
-  }
-
-  return options;
-};
-
-const validateOptions = (options: CLIOptions): void => {
-  if (!options.dir) {
-    throw new Error("Directory is required");
-  }
-
-  if (!fs.existsSync(options.dir)) {
-    throw new Error(`Directory "${options.dir}" does not exist`);
-  }
-
-  const stat = fs.statSync(options.dir);
-  if (!stat.isDirectory()) {
-    throw new Error(`"${options.dir}" is not a directory`);
-  }
+// Add validation for the target option
+program.hook("preAction", (thisCommand) => {
+  const options = thisCommand.opts();
+  const target = options.target;
 
   // Validate ES target format - accept year format (YYYY), numeric format (N), or "latest"
-  if (!/^\d{4}$/.test(options.target) && !/^\d+$/.test(options.target) && options.target !== "latest") {
-    throw new Error(
-      `Invalid ES target: "${options.target}". Expected format: YYYY (e.g., 2015, 2020), numeric (e.g., 6, 11), or "latest"`,
+  if (!/^\d{4}$/.test(target) && !/^\d+$/.test(target) && target !== "latest") {
+    console.error(
+      `Error: Invalid ES target: "${target}". Expected format: YYYY (e.g., 2015, 2020), numeric (e.g., 6, 11), or "latest"`,
     );
+    process.exit(1);
   }
+});
 
-  // browsers is now optional - will be auto-determined if not provided
-};
-
-const main = async (): Promise<void> => {
+// Main action
+program.action(async (directory: string, options: { target: string; browsers?: string }) => {
   try {
-    const options = parseArgs();
-
-    if (options.help) {
-      showHelp();
-      return;
+    // Validate directory exists
+    if (!fs.existsSync(directory)) {
+      console.error(`Error: Directory "${directory}" does not exist`);
+      process.exit(1);
     }
 
-    if (options.version) {
-      showVersion();
-      return;
+    const stat = fs.statSync(directory);
+    if (!stat.isDirectory()) {
+      console.error(`Error: "${directory}" is not a directory`);
+      process.exit(1);
     }
-
-    validateOptions(options);
 
     // Determine browser targets
     const browserTargets = options.browsers || getBrowserTargetsFromString(options.target);
 
     console.log(`🔍 ES-Guard v${version}`);
-    console.log(`📁 Scanning directory: ${options.dir}`);
+    console.log(`📁 Scanning directory: ${directory}`);
     console.log(`🎯 Target ES version: ${options.target}`);
     console.log(`🌐 Browser targets: ${browserTargets}${options.browsers ? "" : " (auto-determined)"}`);
     console.log("");
 
     const violations = await checkCompatibility({
-      dir: options.dir,
+      dir: directory,
       target: options.target,
       browsers: browserTargets,
     });
@@ -164,10 +112,7 @@ const main = async (): Promise<void> => {
     console.error(`❌ Error: ${message}`);
     process.exit(1);
   }
-};
-
-// Run the CLI
-main().catch((error) => {
-  console.error("Fatal error:", error);
-  process.exit(1);
 });
+
+// Parse command line arguments
+program.parse();

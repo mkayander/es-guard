@@ -10,11 +10,3 @@ export type Config = {
   target: string;
   browsers?: string;
 };
-
-export type CLIOptions = {
-  dir: string;
-  target: string;
-  browsers?: string;
-  help: boolean;
-  version: boolean;
-};
