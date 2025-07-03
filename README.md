@@ -2,16 +2,16 @@
 
 [![codecov](https://codecov.io/gh/mkayander/es-guard/branch/main/graph/badge.svg)](https://codecov.io/gh/mkayander/es-guard)
 
-A TypeScript-based tool to check JavaScript compatibility with target environments using ESLint.
+A powerful TypeScript-based tool that ensures your JavaScript code is compatible with target environments using ESLint.
 
 ## Features
 
-- 🔍 **ES Version Compatibility**: Check if your JavaScript code is compatible with specific ES versions (ES2015, ES2016, ES2017, etc.)
-- 🌐 **Browser Compatibility**: Verify browser support using eslint-plugin-compat
-- 🎯 **Auto Browser Detection**: Automatically determine browser targets from ES version (optional)
-- 📁 **Directory Scanning**: Automatically scan directories for JavaScript files
-- 🎯 **GitHub Actions Ready**: Works seamlessly with GitHub Actions
-- 📦 **NPM Package**: Install globally or use as a dependency
+- 🔍 **ES Version Validation**: Verify your JavaScript code compatibility with specific ES versions (ES2015, ES2016, ES2017, and beyond)
+- 🌐 **Browser Support Verification**: Validate browser compatibility using eslint-plugin-compat
+- 🎯 **Smart Browser Detection**: Automatically determine browser targets from ES version (optional)
+- 📁 **Comprehensive Directory Scanning**: Effortlessly scan directories for JavaScript files
+- 🚀 **GitHub Actions Integration**: Seamlessly integrate with GitHub Actions workflows
+- 📦 **Flexible Installation**: Install globally or use as a project dependency
 
 ## Installation
 
@@ -38,13 +38,13 @@ npm run build
 
 ## Usage
 
-### Command Line
+### Command Line Interface
 
 ```bash
-# Basic usage with defaults (auto-determined browsers)
+# Basic usage with auto-detected browsers
 es-guard
 
-# Check specific directory
+# Validate specific directory
 es-guard build
 
 # Specify target ES version (year format)
@@ -59,10 +59,10 @@ es-guard -t latest build
 # Specify custom browser targets
 es-guard --browsers "> 0.5%, last 2 versions, Firefox ESR, not dead" dist
 
-# Show help
+# Display help information
 es-guard --help
 
-# Show version
+# Show version information
 es-guard --version
 ```
 
@@ -71,13 +71,13 @@ es-guard --version
 ```typescript
 import { checkCompatibility } from "es-guard";
 
-// With auto-determined browsers
+// With auto-detected browsers
 const violations = await checkCompatibility({
   dir: "dist",
   target: "2015",
 });
 
-// With custom browsers
+// With custom browser specifications
 const violations = await checkCompatibility({
   dir: "dist",
   target: "2015",
@@ -85,10 +85,10 @@ const violations = await checkCompatibility({
 });
 ```
 
-### GitHub Actions
+### GitHub Actions Integration
 
 ```yaml
-name: Check Compatibility
+name: Validate Compatibility
 on: [push, pull_request]
 
 jobs:
@@ -108,15 +108,15 @@ jobs:
 
 ### Parameters
 
-| Parameter  | Description                                | Default                     | Required |
-| ---------- | ------------------------------------------ | --------------------------- | -------- |
-| `path`     | Directory to scan for JavaScript files     | `dist`                      | No       |
-| `target`   | Target ES version                          | `2015`                      | Yes      |
-| `browsers` | Browser targets for compatibility checking | Auto-determined from target | No       |
+| Parameter  | Description                                | Default                   | Required |
+| ---------- | ------------------------------------------ | ------------------------- | -------- |
+| `path`     | Directory to scan for JavaScript files     | `dist`                    | No       |
+| `target`   | Target ES version                          | `2015`                    | Yes      |
+| `browsers` | Browser targets for compatibility checking | Auto-detected from target | No       |
 
 ### ES Target Versions
 
-The `target` parameter accepts multiple formats:
+The `target` parameter supports multiple formats:
 
 - **Year format**: `2015`, `2016`, `2017`, etc.
 - **Numeric format**: `6` (ES2015), `7` (ES2016), `11` (ES2020), etc.
@@ -124,17 +124,17 @@ The `target` parameter accepts multiple formats:
 
 ### Browser Targets
 
-The `browsers` parameter uses the same format as Browserslist. If not specified, browsers will be automatically determined based on the ES target:
+The `browsers` parameter follows the Browserslist format. When not specified, browsers are automatically determined based on the ES target:
 
 - **ES2015/ES6**: `> 1%, last 2 versions, not dead, ie 11`
 - **ES2016-2017/ES7-8**: `> 1%, last 2 versions, not dead, not ie 11`
 - **ES2018-2019/ES9-10**: `> 1%, last 2 versions, not dead, not ie 11, not op_mini all`
 - **ES2020+/ES11+**: `> 1%, last 2 versions, not dead, not ie 11, not op_mini all, not android < 67`
 
-Custom browser targets examples:
+Custom browser target examples:
 
-- `> 1%, last 2 versions, not dead, ie 11` - Modern browsers + IE11
-- `> 0.5%, last 2 versions, Firefox ESR, not dead` - Broader support
+- `> 1%, last 2 versions, not dead, ie 11` - Modern browsers with IE11 support
+- `> 0.5%, last 2 versions, Firefox ESR, not dead` - Broader browser support
 - `defaults` - Default Browserslist targets
 - `last 1 version` - Latest version of each browser
 
@@ -186,8 +186,8 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 1. Fork the repository
 2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
+3. Implement your changes
+4. Add tests where applicable
 5. Run the linter: `npm run lint`
 6. Submit a pull request
 
