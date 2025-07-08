@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/mkayander/es-guard/compare/v1.2.0...v1.3.0) (2025-07-08)
+
+
+### Features
+
+* Enhance compatibility and target detection tests ([ab24ce3](https://github.com/mkayander/es-guard/commit/ab24ce35a309441684bdb33ebf74235b6fd5e9ad))
+
 # [1.2.0](https://github.com/mkayander/es-guard/compare/v1.1.0...v1.2.0) (2025-07-03)
 
 
