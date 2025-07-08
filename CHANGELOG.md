@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/mkayander/es-guard/compare/v1.3.0...v1.4.0) (2025-07-08)
+
+
+### Features
+
+* Enhance CLI functionality and compatibility checks ([b3024c2](https://github.com/mkayander/es-guard/commit/b3024c2f17f0d3a4c94675c0bc86e8fc4b83fe88))
+
 # [1.3.0](https://github.com/mkayander/es-guard/compare/v1.2.0...v1.3.0) (2025-07-08)
 
 
