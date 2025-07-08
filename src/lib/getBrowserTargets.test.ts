@@ -64,7 +64,9 @@ describe("getBrowserTargetsFromString", () => {
   describe("Special cases", () => {
     test("should handle 'latest' target", () => {
       const result = getBrowserTargetsFromString("latest");
-      expect(result).toBe("> 1%, last 2 versions, not dead, not ie 11, not op_mini all, not android < 67");
+      expect(result).toBe(
+        "> 1%, last 2 versions, not dead, not ie 11, not op_mini all, not android < 67, not kaios < 3.0",
+      );
     });
 
     test("should use latest targets for future ES versions", () => {

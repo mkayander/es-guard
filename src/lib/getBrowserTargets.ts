@@ -58,23 +58,27 @@ export const getBrowserTargets = (target?: Linter.EcmaVersion | null): string =>
     case 2019:
       return "> 1%, last 2 versions, not dead, not ie 11, not op_mini all";
 
-    // ES2020+ (ES11+) - Latest browsers with good modern JS support
+    // ES2020-2021 (ES11-12) - Modern browsers with good ES2020 support
     case 11:
     case 12:
+    case 2020:
+    case 2021:
+      return "> 1%, last 2 versions, not dead, not ie 11, not op_mini all, not android < 67";
+
+    // ES2022+ (ES13+) - Latest browsers with excellent modern JS support
+    // Exclude very old browsers like KaiOS that aren't relevant for modern ES2022+ code
     case 13:
     case 14:
     case 15:
     case 16:
     case 17:
-    case 2020:
-    case 2021:
     case 2022:
     case 2023:
     case 2024:
     case 2025:
     case 2026:
     case "latest":
-      return "> 1%, last 2 versions, not dead, not ie 11, not op_mini all, not android < 67";
+      return "> 1%, last 2 versions, not dead, not ie 11, not op_mini all, not android < 67, not kaios < 3.0";
 
     // Default fallback for unknown versions
     default:

@@ -32,15 +32,15 @@ describe("checkCompatibility", () => {
     vi.clearAllMocks();
   });
 
-  test("should return empty array when no JavaScript files found", async () => {
+  test("should return empty result when no JavaScript files found", async () => {
     const config: Config = {
       dir: testDir,
       target: "2015",
       browsers: "> 1%, last 2 versions, not dead, ie 11",
     };
 
-    const violations = await checkCompatibility(config);
-    expect(violations).toEqual([]);
+    const result = await checkCompatibility(config);
+    expect(result).toEqual({ errors: [], warnings: [] });
   });
 
   test("should work with auto-determined browsers", async () => {
@@ -50,8 +50,8 @@ describe("checkCompatibility", () => {
       // browsers field omitted - should be auto-determined
     };
 
-    const violations = await checkCompatibility(config);
-    expect(violations).toEqual([]);
+    const result = await checkCompatibility(config);
+    expect(result).toEqual({ errors: [], warnings: [] });
   });
 
   test("should find JavaScript files in directory", async () => {
@@ -98,14 +98,14 @@ describe("checkCompatibility", () => {
       browsers: "> 1%, last 2 versions, not dead, ie 11",
     };
 
-    const violations = await checkCompatibility(config);
+    const result = await checkCompatibility(config);
 
     // Should process 3 JavaScript files (even if no violations found)
     expect(mockLintFiles).toHaveBeenCalledTimes(3);
     expect(mockLintFiles).toHaveBeenCalledWith([testFile1]);
     expect(mockLintFiles).toHaveBeenCalledWith([testFile2]);
     expect(mockLintFiles).toHaveBeenCalledWith([testFile3]);
-    expect(violations).toEqual([]);
+    expect(result).toEqual({ errors: [], warnings: [] });
   });
 
   test("should ignore non-JavaScript files", async () => {
@@ -136,12 +136,12 @@ describe("checkCompatibility", () => {
       browsers: "> 1%, last 2 versions, not dead, ie 11",
     };
 
-    const violations = await checkCompatibility(config);
+    const result = await checkCompatibility(config);
 
     // Should only process the .js file (ignore .ts, .json, .txt)
     expect(mockLintFiles).toHaveBeenCalledTimes(1);
     expect(mockLintFiles).toHaveBeenCalledWith([jsFile]);
-    expect(violations).toEqual([]);
+    expect(result).toEqual({ errors: [], warnings: [] });
   });
 
   test("should handle directory that does not exist", async () => {
@@ -151,8 +151,8 @@ describe("checkCompatibility", () => {
       browsers: "> 1%, last 2 versions, not dead, ie 11",
     };
 
-    const violations = await checkCompatibility(config);
-    expect(violations).toEqual([]);
+    const result = await checkCompatibility(config);
+    expect(result).toEqual({ errors: [], warnings: [] });
   });
 
   test("should handle empty directory", async () => {
@@ -162,7 +162,7 @@ describe("checkCompatibility", () => {
       browsers: "> 1%, last 2 versions, not dead, ie 11",
     };
 
-    const violations = await checkCompatibility(config);
-    expect(violations).toEqual([]);
+    const result = await checkCompatibility(config);
+    expect(result).toEqual({ errors: [], warnings: [] });
   });
 });

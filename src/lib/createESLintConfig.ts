@@ -28,7 +28,7 @@ export const createESLintConfig = (target: string, browsers?: string): ESLint.Op
           compat,
         },
         rules: {
-          "compat/compat": "error",
+          "compat/compat": "warn",
         },
         languageOptions: {
           ecmaVersion: ecmaVersion,

@@ -3,12 +3,17 @@ import { createESLintConfig } from "./createESLintConfig.js";
 import { Config, Violation } from "./types.js";
 import { walkDir } from "./walkDir.js";
 
-export const checkCompatibility = async (config: Config): Promise<Violation[]> => {
+export type CompatibilityResult = {
+  errors: Violation[];
+  warnings: Violation[];
+};
+
+export const checkCompatibility = async (config: Config): Promise<CompatibilityResult> => {
   const jsFiles = walkDir(config.dir);
 
   if (jsFiles.length === 0) {
     console.log(`No JavaScript files found in directory: ${config.dir}`);
-    return [];
+    return { errors: [], warnings: [] };
   }
 
   // Set BROWSERSLIST env variable to override Browserslist file detection
@@ -18,18 +23,21 @@ export const checkCompatibility = async (config: Config): Promise<Violation[]> =
   }
 
   const eslint = new ESLint(createESLintConfig(config.target, config.browsers));
-  const violations: Violation[] = [];
+  const errors: Violation[] = [];
+  const warnings: Violation[] = [];
 
   for (const file of jsFiles) {
     try {
       const results = await eslint.lintFiles([file]);
       if (Array.isArray(results)) {
         for (const result of results) {
-          if (result.messages.length > 0) {
-            violations.push({
-              file: result.filePath,
-              messages: result.messages,
-            });
+          const errorMessages = result.messages.filter((m) => m.severity === 2);
+          const warningMessages = result.messages.filter((m) => m.severity === 1);
+          if (errorMessages.length > 0) {
+            errors.push({ file: result.filePath, messages: errorMessages });
+          }
+          if (warningMessages.length > 0) {
+            warnings.push({ file: result.filePath, messages: warningMessages });
           }
         }
       } else {
@@ -47,5 +55,5 @@ export const checkCompatibility = async (config: Config): Promise<Violation[]> =
     delete process.env.BROWSERSLIST;
   }
 
-  return violations;
+  return { errors, warnings };
 };

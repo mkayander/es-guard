@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
+import { verboseMode } from "./globalState.js";
 
 // Shared utilities for ES version parsing and conversion
 
@@ -239,39 +240,102 @@ export const detectTargetAndOutput = (cwd: string = process.cwd()): DetectionRes
   const configFileNames = getConfigFileNames();
   const result: DetectionResult = {};
 
+  if (verboseMode) {
+    console.log("🔍 Starting configuration file detection...");
+    console.log(`📂 Scanning directory: ${cwd}`);
+    console.log("📋 Files to check:");
+    configFileNames.forEach((filename, index) => {
+      console.log(`   ${index + 1}. ${filename}`);
+    });
+    console.log("");
+  }
+
   for (const filename of configFileNames) {
     const filePath = path.join(cwd, filename);
+
     if (fs.existsSync(filePath)) {
+      if (verboseMode) {
+        console.log(`✅ Found: ${filename}`);
+      }
+
       const parser = getParser(filename);
       if (!parser) {
-        console.warn(`No parser found for ${filename}`);
+        if (verboseMode) {
+          console.log(`   ⚠️  No parser available for ${filename}`);
+        } else {
+          console.warn(`No parser found for ${filename}`);
+        }
         continue;
       }
 
       try {
         const detection = parser(filePath);
 
+        if (verboseMode) {
+          console.log(`   📄 Parsed ${filename}:`);
+        }
+
         // Update target if found and not already set
         if (detection.target && !result.target) {
           result.target = detection.target;
           result.targetSource = filename;
+          if (verboseMode) {
+            console.log(`      🎯 Target: ${detection.target} (ES${detection.target})`);
+          }
+        } else if (verboseMode && detection.target) {
+          console.log(`      🎯 Target: ${detection.target} (already found in ${result.targetSource})`);
+        } else if (verboseMode) {
+          console.log(`      🎯 Target: not found`);
         }
 
         // Update output directory if found and not already set
         if (detection.outputDir && !result.outputDir) {
           result.outputDir = detection.outputDir;
           result.outputSource = filename;
+          if (verboseMode) {
+            console.log(`      📁 Output directory: ${detection.outputDir}`);
+          }
+        } else if (verboseMode && detection.outputDir) {
+          console.log(`      📁 Output directory: ${detection.outputDir} (already found in ${result.outputSource})`);
+        } else if (verboseMode) {
+          console.log(`      📁 Output directory: not found`);
         }
 
         // If we found both target and output directory, we can stop searching
         if (result.target && result.outputDir) {
+          if (verboseMode) {
+            console.log(`   ✅ Both target and output directory found, stopping search`);
+          }
           break;
         }
       } catch (error) {
-        console.warn(`Error parsing ${filename}:`, error);
+        if (verboseMode) {
+          console.log(`   ❌ Error parsing ${filename}: ${error instanceof Error ? error.message : String(error)}`);
+        } else {
+          console.warn(`Error parsing ${filename}:`, error);
+        }
         continue;
       }
+    } else if (verboseMode) {
+      console.log(`❌ Not found: ${filename}`);
     }
+  }
+
+  if (verboseMode) {
+    console.log("");
+    console.log("📊 Detection Results:");
+    if (result.target) {
+      console.log(`   🎯 Target: ${result.target} (from ${result.targetSource})`);
+    } else {
+      console.log(`   🎯 Target: not found`);
+    }
+
+    if (result.outputDir) {
+      console.log(`   📁 Output directory: ${result.outputDir} (from ${result.outputSource})`);
+    } else {
+      console.log(`   📁 Output directory: not found`);
+    }
+    console.log("");
   }
 
   return result;

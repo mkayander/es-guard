@@ -43,11 +43,15 @@ describe("ESLint Integration Tests", () => {
       browsers: "ie 11",
     };
 
-    const violations = await checkCompatibility(config);
+    const result = await checkCompatibility(config);
 
     // Should find violations for ES2015+ features
-    expect(violations.length).toBeGreaterThan(0);
-    expect(violations[0].file).toContain("modern.js");
+    expect(result.errors.length + result.warnings.length).toBeGreaterThan(0);
+    if (result.errors.length > 0) {
+      expect(result.errors[0].file).toContain("modern.js");
+    } else if (result.warnings.length > 0) {
+      expect(result.warnings[0].file).toContain("modern.js");
+    }
   });
 
   test("should detect ES2020+ features when targeting ES2015", async () => {
@@ -68,8 +72,8 @@ describe("ESLint Integration Tests", () => {
       browsers: "ie 11",
     };
 
-    const violations = await checkCompatibility(config);
-    expect(violations.length).toBeGreaterThan(0);
+    const result = await checkCompatibility(config);
+    expect(result.errors.length + result.warnings.length).toBeGreaterThan(0);
   });
 
   test("should pass with ES2015 features when targeting ES2020", async () => {
@@ -89,9 +93,9 @@ describe("ESLint Integration Tests", () => {
       browsers: "> 1%, last 2 versions",
     };
 
-    const violations = await checkCompatibility(config);
+    const result = await checkCompatibility(config);
     // ES2015 features should be compatible with ES2020
-    expect(violations.length).toBe(0);
+    expect(result.errors.length + result.warnings.length).toBe(0);
   });
 
   test("should detect browser compatibility issues", async () => {
@@ -112,9 +116,9 @@ describe("ESLint Integration Tests", () => {
       browsers: "ie 11",
     };
 
-    const violations = await checkCompatibility(config);
+    const result = await checkCompatibility(config);
     // Should detect browser compatibility issues
-    expect(violations.length).toBeGreaterThanOrEqual(0);
+    expect(result.errors.length + result.warnings.length).toBeGreaterThanOrEqual(0);
   });
 
   test("should handle multiple files with different issues", async () => {
@@ -132,11 +136,12 @@ describe("ESLint Integration Tests", () => {
       browsers: "ie 11",
     };
 
-    const violations = await checkCompatibility(config);
-    expect(violations.length).toBeGreaterThan(0);
+    const result = await checkCompatibility(config);
+    expect(result.errors.length + result.warnings.length).toBeGreaterThan(0);
 
     // Only file2.js should be flagged for ES2020+ features
-    const files = violations.map((v) => path.basename(v.file));
+    const allViolations = [...result.errors, ...result.warnings];
+    const files = allViolations.map((v) => path.basename(v.file));
     expect(files).not.toContain("file1.js");
     expect(files).toContain("file2.js");
   });
@@ -154,8 +159,10 @@ describe("ESLint Integration Tests", () => {
     ];
 
     for (const config of configs) {
-      const violations = await checkCompatibility(config);
-      expect(Array.isArray(violations)).toBe(true);
+      const result = await checkCompatibility(config);
+      expect(typeof result).toBe("object");
+      expect(Array.isArray(result.errors)).toBe(true);
+      expect(Array.isArray(result.warnings)).toBe(true);
     }
   });
 });
