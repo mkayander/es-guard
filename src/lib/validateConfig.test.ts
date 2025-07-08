@@ -1,8 +1,8 @@
 import { describe, test, expect, afterEach } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
-import { validateConfig } from "../lib/validateConfig.js";
-import type { Config } from "../lib/types.js";
+import { validateConfig } from "./validateConfig.js";
+import type { Config } from "./types.js";
 
 const tempDir = path.join(process.cwd(), "test-validate-config-temp");
 

@@ -1,8 +1,8 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
-import { checkCompatibility } from "../lib/checkCompatiblity.js";
-import type { Config } from "../lib/types.js";
+import { checkCompatibility } from "./checkCompatiblity.js";
+import type { Config } from "./types.js";
 
 // Mock ESLint to avoid actual linting during tests
 const mockLintFiles = vi.fn();

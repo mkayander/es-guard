@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { getBrowserTargetsFromString } from "../lib/getBrowserTargets.js";
+import { getBrowserTargetsFromString } from "./getBrowserTargets.js";
 
 describe("getBrowserTargetsFromString", () => {
   describe("Year-based ES versions", () => {

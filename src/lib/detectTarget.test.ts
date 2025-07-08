@@ -190,6 +190,57 @@ describe("detectTarget", () => {
       expect(detectOutputDir(tempDir)).toEqual({ outputDir: "dist", source: "package.json" });
     });
 
+    it("should detect .next/static from Next.js app in package.json", () => {
+      writeFile(
+        "package.json",
+        JSON.stringify({
+          name: "test",
+          dependencies: {
+            next: "^13.0.0",
+          },
+        }),
+      );
+
+      expect(detectOutputDir(tempDir)).toEqual({ outputDir: ".next/static", source: "package.json" });
+    });
+
+    it("should detect custom distDir from next.config.js", () => {
+      writeFile(
+        "next.config.js",
+        `module.exports = {
+          distDir: 'build'
+        }`,
+      );
+
+      expect(detectOutputDir(tempDir)).toEqual({ outputDir: "build", source: "next.config.js" });
+    });
+
+    it("should detect default .next from next.config.js", () => {
+      writeFile(
+        "next.config.js",
+        `module.exports = {
+          experimental: {
+            appDir: true
+          }
+        }`,
+      );
+
+      expect(detectOutputDir(tempDir)).toEqual({ outputDir: ".next", source: "next.config.js" });
+    });
+
+    it("should detect output directory from vite.config.cjs", () => {
+      writeFile(
+        "vite.config.cjs",
+        `module.exports = {
+          build: {
+            outDir: 'build'
+          }
+        }`,
+      );
+
+      expect(detectOutputDir(tempDir)).toEqual({ outputDir: "build", source: "vite.config.cjs" });
+    });
+
     it("should return null when no output directory is configured", () => {
       writeFile(
         "tsconfig.json",

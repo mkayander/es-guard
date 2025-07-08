@@ -3,6 +3,29 @@ import * as path from "path";
 
 // Shared utilities for ES version parsing and conversion
 
+const CONFIG_FILE_NAMES = [
+  "package.json",
+  ".browserslistrc",
+  ".browserslist",
+  "tsconfig.json",
+  "babel.config.js",
+  "babel.config.cjs",
+  "babel.config.mjs",
+  ".babelrc",
+  "vite.config.js",
+  "vite.config.ts",
+  "vite.config.cjs",
+  "vite.config.mjs",
+  "webpack.config.js",
+  "webpack.config.ts",
+  "webpack.config.cjs",
+  "webpack.config.mjs",
+  "next.config.js",
+  "next.config.ts",
+  "next.config.cjs",
+  "next.config.mjs",
+];
+
 /**
  * Parse ES version from string (e.g., "es6", "es2020", "ES2015")
  * Returns the year as a string, or null if not found
@@ -99,6 +122,8 @@ const isPackageJson = (
   main?: string;
   dist?: string;
   build?: string;
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
 } => {
   return typeof obj === "object" && obj !== null;
 };
@@ -151,6 +176,17 @@ const isWebpackConfig = (
 };
 
 /**
+ * Type guard for next.js config structure
+ */
+const isNextConfig = (
+  obj: unknown,
+): obj is {
+  distDir?: string;
+} => {
+  return typeof obj === "object" && obj !== null;
+};
+
+/**
  * Combined detection result type
  */
 type DetectionResult = {
@@ -161,42 +197,70 @@ type DetectionResult = {
 };
 
 /**
+ * Get parser function for a given config file
+ */
+const getParser = (filename: string) => {
+  switch (true) {
+    case filename === "package.json":
+      return parsePackageJson;
+    case filename === ".browserslistrc":
+    case filename === ".browserslist":
+      return parseBrowserslistFile;
+    case filename === "tsconfig.json":
+      return parseTsConfig;
+    case filename === ".babelrc":
+      return parseBabelRc;
+    case filename.startsWith("babel.config"):
+      return parseBabelConfig;
+    case filename.startsWith("vite.config"):
+      return parseViteConfig;
+    case filename.startsWith("webpack.config"):
+      return parseWebpackConfig;
+    case filename.startsWith("next.config"):
+      return parseNextConfig;
+    default:
+      return null;
+  }
+};
+
+/**
+ * Get all possible config file names for detection
+ */
+const getConfigFileNames = () => {
+  return CONFIG_FILE_NAMES;
+};
+
+/**
  * Detects both ES target and output directory from common frontend project configuration files.
  * Searches in order of preference: package.json, .browserslistrc/.browserslist, tsconfig.json, babel.config.js, .babelrc, vite.config.js, webpack.config.js
  * Returns an object with detected target and output directory information
  */
 export const detectTargetAndOutput = (cwd: string = process.cwd()): DetectionResult => {
-  const configFiles = [
-    { name: "package.json", parser: parsePackageJson },
-    { name: ".browserslistrc", parser: parseBrowserslistFile },
-    { name: ".browserslist", parser: parseBrowserslistFile },
-    { name: "tsconfig.json", parser: parseTsConfig },
-    { name: "babel.config.js", parser: parseBabelConfig },
-    { name: ".babelrc", parser: parseBabelRc },
-    { name: "vite.config.js", parser: parseViteConfig },
-    { name: "vite.config.ts", parser: parseViteConfig },
-    { name: "webpack.config.js", parser: parseWebpackConfig },
-    { name: "webpack.config.ts", parser: parseWebpackConfig },
-  ];
-
+  const configFileNames = getConfigFileNames();
   const result: DetectionResult = {};
 
-  for (const config of configFiles) {
-    const filePath = path.join(cwd, config.name);
+  for (const filename of configFileNames) {
+    const filePath = path.join(cwd, filename);
     if (fs.existsSync(filePath)) {
+      const parser = getParser(filename);
+      if (!parser) {
+        console.warn(`No parser found for ${filename}`);
+        continue;
+      }
+
       try {
-        const detection = config.parser(filePath);
+        const detection = parser(filePath);
 
         // Update target if found and not already set
         if (detection.target && !result.target) {
           result.target = detection.target;
-          result.targetSource = config.name;
+          result.targetSource = filename;
         }
 
         // Update output directory if found and not already set
         if (detection.outputDir && !result.outputDir) {
           result.outputDir = detection.outputDir;
-          result.outputSource = config.name;
+          result.outputSource = filename;
         }
 
         // If we found both target and output directory, we can stop searching
@@ -204,7 +268,7 @@ export const detectTargetAndOutput = (cwd: string = process.cwd()): DetectionRes
           break;
         }
       } catch (error) {
-        console.warn(`Error parsing ${config.name}:`, error);
+        console.warn(`Error parsing ${filename}:`, error);
         continue;
       }
     }
@@ -267,6 +331,9 @@ const parsePackageJson = (filePath: string): { target?: string; outputDir?: stri
     result.outputDir = pkg.build;
   } else if (pkg.main && pkg.main.startsWith("./dist/")) {
     result.outputDir = "dist";
+  } else if (pkg.dependencies?.next || pkg.devDependencies?.next) {
+    // Next.js apps default to .next directory
+    result.outputDir = ".next/static";
   }
 
   return result;
@@ -433,4 +500,27 @@ const parseBrowserslistFile = (filePath: string): { target?: string; outputDir?:
   }
 
   return {};
+};
+
+/**
+ * Parse next.config.js/ts/cjs/mjs for output directory
+ */
+const parseNextConfig = (filePath: string): { target?: string; outputDir?: string } => {
+  const config = evaluateJsFile(filePath);
+
+  if (!isNextConfig(config)) {
+    return {};
+  }
+
+  const result: { target?: string; outputDir?: string } = {};
+
+  // Next.js uses .next as default output directory
+  if (config.distDir) {
+    result.outputDir = config.distDir;
+  } else {
+    // Default Next.js output directory
+    result.outputDir = ".next";
+  }
+
+  return result;
 };
