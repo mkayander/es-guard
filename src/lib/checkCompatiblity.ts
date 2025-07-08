@@ -5,6 +5,7 @@ import { walkDir } from "./walkDir.js";
 import * as fs from "fs";
 import * as path from "path";
 import { SourceMapConsumer } from "source-map";
+import { codeFrameColumns } from "@babel/code-frame";
 
 export type CompatibilityResult = {
   errors: Violation[];
@@ -38,6 +39,54 @@ async function getSourceMapForFile(jsFile: string): Promise<SourceMapConsumer | 
   return null;
 }
 
+/**
+ * Recursively follows source map chains to find the original source file.
+ * This handles cases where there are multiple layers of source maps.
+ */
+async function getOriginalSourceMap(
+  jsFile: string,
+): Promise<{ consumer: SourceMapConsumer; originalFile?: string } | null> {
+  let currentFile = jsFile;
+  let consumer: SourceMapConsumer | null = null;
+  let originalFile: string | undefined;
+
+  // Follow the source map chain
+  while (true) {
+    consumer = await getSourceMapForFile(currentFile);
+    if (!consumer) break;
+
+    // Get the first source file from this source map
+    // Note: SourceMapConsumer doesn't expose sources directly, so we'll use a different approach
+    // We'll try to get the original position for the first line to find the source
+    const firstPosition = consumer.originalPositionFor({ line: 1, column: 0 });
+    if (firstPosition && firstPosition.source) {
+      originalFile = firstPosition.source;
+
+      // If this source file is a webpack:// URL, we've reached the end
+      if (originalFile.startsWith("webpack://")) {
+        break;
+      }
+
+      // If this source file exists and is a JS file, continue following the chain
+      const resolvedPath = path.isAbsolute(originalFile)
+        ? originalFile
+        : path.resolve(path.dirname(currentFile), originalFile);
+
+      if (fs.existsSync(resolvedPath) && resolvedPath.endsWith(".js")) {
+        // Continue following the chain
+        if (consumer.destroy) consumer.destroy();
+        currentFile = resolvedPath;
+        continue;
+      }
+    }
+
+    // If we can't find a valid source to follow, stop here
+    break;
+  }
+
+  return consumer ? { consumer, originalFile } : null;
+}
+
 export const checkCompatibility = async (config: Config): Promise<CompatibilityResult> => {
   const jsFiles = walkDir(config.dir);
 
@@ -68,9 +117,16 @@ export const checkCompatibility = async (config: Config): Promise<CompatibilityR
           let sourceMappedErrors: SourceMappedMessage[] | undefined = undefined;
           let sourceMappedWarnings: SourceMappedMessage[] | undefined = undefined;
           let sourceMap: SourceMapConsumer | null = null;
+          let originalFile: string | undefined = undefined;
+
           if (errorMessages.length > 0 || warningMessages.length > 0) {
-            sourceMap = await getSourceMapForFile(file);
+            const sourceMapResult = await getOriginalSourceMap(file);
+            if (sourceMapResult) {
+              sourceMap = sourceMapResult.consumer;
+              originalFile = sourceMapResult.originalFile;
+            }
           }
+
           if (sourceMap) {
             if (errorMessages.length > 0) {
               sourceMappedErrors = errorMessages.map((msg) => {
@@ -81,7 +137,7 @@ export const checkCompatibility = async (config: Config): Promise<CompatibilityR
                   });
                   return {
                     ...msg,
-                    originalFile: orig.source || undefined,
+                    originalFile: orig.source || originalFile || undefined,
                     originalLine: orig.line || undefined,
                     originalColumn: orig.column || undefined,
                   };
@@ -98,7 +154,7 @@ export const checkCompatibility = async (config: Config): Promise<CompatibilityR
                   });
                   return {
                     ...msg,
-                    originalFile: orig.source || undefined,
+                    originalFile: orig.source || originalFile || undefined,
                     originalLine: orig.line || undefined,
                     originalColumn: orig.column || undefined,
                   };
@@ -147,36 +203,133 @@ export const checkCompatibility = async (config: Config): Promise<CompatibilityR
  * @param message The lint message
  * @param sourceMappedMessage Optional source mapped message with original file information
  * @param baseDir Base directory for resolving relative paths
+ * @param explicitFilePath Explicit file path for code frame
  * @returns Formatted message string
  */
 export const formatViolationMessage = (
   message: Linter.LintMessage,
   sourceMappedMessage?: SourceMappedMessage,
   baseDir: string = process.cwd(),
+  explicitFilePath?: string,
 ): string => {
   const lineCol = `${message.line}:${message.column}`;
   const ruleInfo = message.ruleId ? ` (${message.ruleId})` : "";
 
-  // If we have source mapped information, show the original source
+  let codeFrame = "";
+  let filePath: string | undefined;
+  let line: number | undefined;
+  let column: number | undefined;
+  let canReadSource = false;
+
+  // Prefer explicit file path if provided
+  if (explicitFilePath) {
+    filePath = explicitFilePath;
+    line = message.line;
+    column = message.column;
+    canReadSource = fs.existsSync(filePath);
+  } else if (sourceMappedMessage?.originalFile && sourceMappedMessage?.originalLine) {
+    const originalFile = sourceMappedMessage.originalFile;
+    line = sourceMappedMessage.originalLine;
+    column = sourceMappedMessage.originalColumn || 0;
+
+    // Handle webpack:// URLs - try to extract the actual file path
+    if (originalFile.startsWith("webpack://")) {
+      // Extract the file path from webpack:// URLs
+      // Examples:
+      // webpack://_N_E/src/shared/lib/head.tsx -> src/shared/lib/head.tsx
+      // webpack:///./src/components/Button.tsx -> src/components/Button.tsx
+      const match = originalFile.match(/webpack:\/\/[^/]*\/(.+)$/);
+      if (match) {
+        const extractedPath = match[1];
+        // Try to find the file in common locations
+        const possiblePaths = [
+          path.join(baseDir, extractedPath),
+          path.join(baseDir, "src", extractedPath),
+          path.join(baseDir, "app", extractedPath),
+          path.join(baseDir, "pages", extractedPath),
+          path.join(baseDir, "components", extractedPath),
+        ];
+
+        for (const possiblePath of possiblePaths) {
+          if (fs.existsSync(possiblePath)) {
+            filePath = possiblePath;
+            canReadSource = true;
+            break;
+          }
+        }
+      }
+
+      if (!filePath) {
+        filePath = undefined;
+        canReadSource = false;
+      }
+    } else {
+      filePath = originalFile;
+      if (!path.isAbsolute(filePath)) {
+        const cleanPath = filePath.replace(/^\.\//, "");
+        filePath = path.join(baseDir, cleanPath);
+      }
+      canReadSource = fs.existsSync(filePath);
+    }
+  } else if (message.line && message.column) {
+    filePath = undefined;
+    line = message.line;
+    column = message.column;
+  }
+
+  // Try to print a code frame if we have a readable file path
+  if (filePath && canReadSource && line) {
+    try {
+      const raw = fs.readFileSync(filePath, "utf-8");
+      // Heuristic: don't print code frame if file is minified (single line or very long lines)
+      const lines = raw.split(/\r?\n/);
+      const isMinified =
+        lines.length === 1 || (line <= lines.length && lines[line - 1] && lines[line - 1].length > 300);
+      if (!isMinified) {
+        codeFrame =
+          "\n" +
+          codeFrameColumns(
+            raw,
+            { start: { line, column: column || 1 } },
+            { highlightCode: true, linesAbove: 1, linesBelow: 1 },
+          );
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  // If we have source-mapped info, show the original source
   if (sourceMappedMessage?.originalFile && sourceMappedMessage?.originalLine) {
     const originalFile = sourceMappedMessage.originalFile;
     const originalLine = sourceMappedMessage.originalLine;
     const originalCol = sourceMappedMessage.originalColumn || 0;
 
-    // Try to resolve the original file path relative to base directory
-    let resolvedOriginalFile = originalFile;
-    if (!path.isAbsolute(originalFile)) {
-      // Remove any webpack:// or similar prefixes
-      const cleanPath = originalFile.replace(/^webpack:\/\/\//, "").replace(/^\.\//, "");
-      resolvedOriginalFile = path.join(baseDir, cleanPath);
+    // Different indicators based on whether we can read the source
+    let linkIndicator: string;
+    let linkPath: string | undefined;
+    if (originalFile.startsWith("webpack://")) {
+      linkIndicator = canReadSource ? "🔗" : "🌐"; // Webpack path (found/not found)
+      if (canReadSource && filePath) linkPath = filePath;
+    } else if (canReadSource && filePath) {
+      linkIndicator = "🔗"; // Readable file
+      linkPath = filePath;
+    } else {
+      linkIndicator = "📄"; // File exists but not readable
     }
 
-    // Create a clickable link if the file exists
-    const fileExists = fs.existsSync(resolvedOriginalFile);
-    const linkIndicator = fileExists ? "🔗" : "📄";
+    // Only make the path clickable if it points to a real file
+    let originalDisplay: string;
+    if (linkPath && fs.existsSync(linkPath)) {
+      // Use file:// URI so terminals/editors can recognize it as a link
+      const fileUri = `file://${linkPath.replace(/\\/g, "/")}`;
+      originalDisplay = `${linkIndicator} Original: ${fileUri}:${originalLine}:${originalCol}`;
+    } else {
+      originalDisplay = `${linkIndicator} Original: ${originalFile}:${originalLine}:${originalCol}`;
+    }
 
-    return `${lineCol} - ${message.message}${ruleInfo}\n     ${linkIndicator} Original: ${originalFile}:${originalLine}:${originalCol}`;
+    return `${lineCol} - ${message.message}${ruleInfo}\n     ${originalDisplay}${codeFrame}`;
   }
 
-  return `${lineCol} - ${message.message}${ruleInfo}`;
+  return `${lineCol} - ${message.message}${ruleInfo}${codeFrame}`;
 };

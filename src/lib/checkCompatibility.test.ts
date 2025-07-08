@@ -255,4 +255,29 @@ describe("formatViolationMessage", () => {
     const result = formatViolationMessage(message, sourceMappedMessage);
     expect(result).toContain("Original: src/components/Button.tsx:15:0");
   });
+
+  test("should print a code frame for a real file", () => {
+    const tempFile = path.join(process.cwd(), "test-code-frame.js");
+    const fileContent = [
+      "const a = 1;",
+      "const b = 2;",
+      "const c = () => { return a + b; }; // error here",
+      "console.log(c());",
+    ].join("\n");
+    fs.writeFileSync(tempFile, fileContent, "utf-8");
+
+    const message: Linter.LintMessage = {
+      ruleId: "compat/compat",
+      severity: 2,
+      message: "Arrow functions are not supported in IE 11",
+      line: 3,
+      column: 11, // points to the arrow
+    };
+
+    const output = formatViolationMessage(message, undefined, process.cwd(), tempFile);
+    expect(output).toContain("Arrow functions are not supported in IE 11");
+    expect(output).toContain("error");
+
+    fs.unlinkSync(tempFile);
+  });
 });
