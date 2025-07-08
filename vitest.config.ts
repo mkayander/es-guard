@@ -1,6 +1,11 @@
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  server: {
+    watch: {
+      ignored: ["**/test-cli-temp/**"],
+    },
+  },
   test: {
     environment: "node",
     globals: true,
