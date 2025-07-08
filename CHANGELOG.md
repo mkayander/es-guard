@@ -1,3 +1,18 @@
+# [1.5.0](https://github.com/mkayander/es-guard/compare/v1.4.0...v1.5.0) (2025-07-08)
+
+
+### Bug Fixes
+
+* Improve formatting of violation messages for better readability ([d2eb082](https://github.com/mkayander/es-guard/commit/d2eb08232cddce87feb649b0131422769ab3abcd))
+* Suppress ESLint warning for unused variable in formatViolationMessage ([0b0cdac](https://github.com/mkayander/es-guard/commit/0b0cdacab52090ec9aed9df9edd6b4cfea357a80))
+
+
+### Features
+
+* Add chalk for improved message formatting in compatibility checks ([fe1066e](https://github.com/mkayander/es-guard/commit/fe1066e9872ddf584797aa45268fa78dd5d6bd76))
+* Add source map support and enhance error messaging in compatibility checks ([8c087af](https://github.com/mkayander/es-guard/commit/8c087af37172d09dbba50c9b3b201e8886d5d183))
+* Integrate @babel/code-frame for enhanced error reporting ([932abdc](https://github.com/mkayander/es-guard/commit/932abdc785093118d8fb431cdbf1e2de07e12b36))
+
 # [1.4.0](https://github.com/mkayander/es-guard/compare/v1.3.0...v1.4.0) (2025-07-08)
 
 
