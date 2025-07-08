@@ -4,7 +4,7 @@ import * as fs from "fs";
 import * as path from "path";
 
 const testDir = path.join(process.cwd(), "test-cli-temp");
-const CLI_CMD = path.join(__dirname, "../../dist/cli.js");
+const CLI_CMD = path.join(__dirname, "../dist/cli.js");
 
 describe("CLI Tests", () => {
   beforeEach(() => {

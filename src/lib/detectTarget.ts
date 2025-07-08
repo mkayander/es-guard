@@ -59,16 +59,61 @@ const readJsonFile = (filePath: string): unknown => {
 };
 
 /**
+ * Helper to read text file safely
+ */
+const readTextFile = (filePath: string): string => {
+  return fs.readFileSync(filePath, "utf-8");
+};
+
+/**
+ * Helper to safely evaluate JavaScript files (for config files)
+ */
+const evaluateJsFile = (filePath: string): unknown => {
+  const content = readTextFile(filePath);
+  // Create a safe evaluation context
+  const module = { exports: {} };
+  const require = (id: string) => {
+    if (id === "path") return path;
+    if (id === "fs") return fs;
+    throw new Error(`Cannot require '${id}' in config evaluation`);
+  };
+
+  try {
+    // Use Function constructor to create a safe evaluation environment
+    const fn = new Function("module", "exports", "require", "path", "fs", "__dirname", content);
+    fn(module, module.exports, require, path, fs, path.dirname(filePath));
+    return module.exports;
+  } catch (error) {
+    console.warn(`Error evaluating ${filePath}:`, error);
+    return null;
+  }
+};
+
+/**
  * Type guard for package.json structure
  */
-const isPackageJson = (obj: unknown): obj is { browserslist?: string | string[] } => {
-  return typeof obj === "object" && obj !== null && "browserslist" in obj;
+const isPackageJson = (
+  obj: unknown,
+): obj is {
+  browserslist?: string | string[];
+  main?: string;
+  dist?: string;
+  build?: string;
+} => {
+  return typeof obj === "object" && obj !== null;
 };
 
 /**
  * Type guard for tsconfig.json structure
  */
-const isTsConfig = (obj: unknown): obj is { compilerOptions?: { target?: string } } => {
+const isTsConfig = (
+  obj: unknown,
+): obj is {
+  compilerOptions?: {
+    target?: string;
+    outDir?: string;
+  };
+} => {
   return typeof obj === "object" && obj !== null && "compilerOptions" in obj;
 };
 
@@ -80,18 +125,47 @@ const isBabelRc = (obj: unknown): obj is { presets?: Array<[string, { targets?: 
 };
 
 /**
- * Helper to read text file safely
+ * Type guard for vite config structure
  */
-const readTextFile = (filePath: string): string => {
-  return fs.readFileSync(filePath, "utf-8");
+const isViteConfig = (
+  obj: unknown,
+): obj is {
+  build?: {
+    outDir?: string;
+  };
+} => {
+  return typeof obj === "object" && obj !== null;
 };
 
 /**
- * Detects ES target from common frontend project configuration files.
- * Searches in order of preference: package.json, .browserslistrc/.browserslist, tsconfig.json, babel.config.js, .babelrc, vite.config.js, webpack.config.js
- * Returns an object with the detected target and the source file name, or null if not found
+ * Type guard for webpack config structure
  */
-export const detectTarget = (cwd: string = process.cwd()): { target: string; source: string } | null => {
+const isWebpackConfig = (
+  obj: unknown,
+): obj is {
+  output?: {
+    path?: string;
+  };
+} => {
+  return typeof obj === "object" && obj !== null;
+};
+
+/**
+ * Combined detection result type
+ */
+type DetectionResult = {
+  target?: string;
+  targetSource?: string;
+  outputDir?: string;
+  outputSource?: string;
+};
+
+/**
+ * Detects both ES target and output directory from common frontend project configuration files.
+ * Searches in order of preference: package.json, .browserslistrc/.browserslist, tsconfig.json, babel.config.js, .babelrc, vite.config.js, webpack.config.js
+ * Returns an object with detected target and output directory information
+ */
+export const detectTargetAndOutput = (cwd: string = process.cwd()): DetectionResult => {
   const configFiles = [
     { name: "package.json", parser: parsePackageJson },
     { name: ".browserslistrc", parser: parseBrowserslistFile },
@@ -105,39 +179,72 @@ export const detectTarget = (cwd: string = process.cwd()): { target: string; sou
     { name: "webpack.config.ts", parser: parseWebpackConfig },
   ];
 
+  const result: DetectionResult = {};
+
   for (const config of configFiles) {
     const filePath = path.join(cwd, config.name);
     if (fs.existsSync(filePath)) {
       try {
-        const target = config.parser(filePath);
-        if (target) {
-          return { target, source: config.name };
+        const detection = config.parser(filePath);
+
+        // Update target if found and not already set
+        if (detection.target && !result.target) {
+          result.target = detection.target;
+          result.targetSource = config.name;
+        }
+
+        // Update output directory if found and not already set
+        if (detection.outputDir && !result.outputDir) {
+          result.outputDir = detection.outputDir;
+          result.outputSource = config.name;
+        }
+
+        // If we found both target and output directory, we can stop searching
+        if (result.target && result.outputDir) {
+          break;
         }
       } catch (error) {
         console.warn(`Error parsing ${config.name}:`, error);
-        // Continue to next config file if parsing fails
         continue;
       }
     }
   }
 
-  return null;
+  return result;
 };
 
 /**
- * Parse package.json for ES target in browserslist
+ * Legacy function for backward compatibility - detects only ES target
  */
-const parsePackageJson = (filePath: string): string | null => {
+export const detectTarget = (cwd: string = process.cwd()): { target: string; source: string } | null => {
+  const result = detectTargetAndOutput(cwd);
+  return result.target ? { target: result.target, source: result.targetSource! } : null;
+};
+
+/**
+ * Legacy function for backward compatibility - detects only output directory
+ */
+export const detectOutputDir = (cwd: string = process.cwd()): { outputDir: string; source: string } | null => {
+  const result = detectTargetAndOutput(cwd);
+  return result.outputDir ? { outputDir: result.outputDir, source: result.outputSource! } : null;
+};
+
+/**
+ * Parse package.json for both target and output directory
+ */
+const parsePackageJson = (filePath: string): { target?: string; outputDir?: string } => {
   const pkg = readJsonFile(filePath);
 
   if (!isPackageJson(pkg)) {
     console.warn(
       `Warning: ${filePath} does not look like a valid package.json (missing or invalid browserslist field).`,
     );
-    return null;
+    return {};
   }
 
-  // Check for browserslist field
+  const result: { target?: string; outputDir?: string } = {};
+
+  // Check for browserslist field for target
   if (pkg.browserslist) {
     const browserslist = Array.isArray(pkg.browserslist) ? pkg.browserslist : [pkg.browserslist];
 
@@ -146,43 +253,59 @@ const parsePackageJson = (filePath: string): string | null => {
       if (typeof browser === "string") {
         const target = parseESVersion(browser);
         if (target) {
-          return target;
+          result.target = target;
+          break;
         }
       }
     }
   }
 
-  // Note: engines.node is for development/build tools, not client-side targets
-  // So we don't use it for auto-detection
+  // Check for output directory hints
+  if (pkg.dist) {
+    result.outputDir = pkg.dist;
+  } else if (pkg.build) {
+    result.outputDir = pkg.build;
+  } else if (pkg.main && pkg.main.startsWith("./dist/")) {
+    result.outputDir = "dist";
+  }
 
-  return null;
+  return result;
 };
 
 /**
- * Parse tsconfig.json for target
+ * Parse tsconfig.json for both target and output directory
  */
-const parseTsConfig = (filePath: string): string | null => {
+const parseTsConfig = (filePath: string): { target?: string; outputDir?: string } => {
   const config = readJsonFile(filePath);
 
   if (!isTsConfig(config)) {
     console.warn(
       `Warning: ${filePath} does not look like a valid tsconfig.json (missing or invalid compilerOptions field).`,
     );
-    return null;
+    return {};
   }
+
+  const result: { target?: string; outputDir?: string } = {};
 
   if (config.compilerOptions?.target) {
     const target = config.compilerOptions.target;
-    return TARGET_MAP[target] || null;
+    const mappedTarget = TARGET_MAP[target];
+    if (mappedTarget) {
+      result.target = mappedTarget;
+    }
   }
 
-  return null;
+  if (config.compilerOptions?.outDir) {
+    result.outputDir = config.compilerOptions.outDir;
+  }
+
+  return result;
 };
 
 /**
- * Parse babel.config.js for preset-env target
+ * Parse babel.config.js for target
  */
-const parseBabelConfig = (filePath: string): string | null => {
+const parseBabelConfig = (filePath: string): { target?: string; outputDir?: string } => {
   const content = readTextFile(filePath);
 
   // Look for @babel/preset-env configuration
@@ -194,22 +317,25 @@ const parseBabelConfig = (filePath: string): string | null => {
     const browsersMatch = targetsStr.match(/browsers.*?\[(.*?)\]/);
     if (browsersMatch) {
       const browsers = browsersMatch[1];
-      return parseESVersion(browsers);
+      const target = parseESVersion(browsers);
+      if (target) {
+        return { target };
+      }
     }
   }
 
-  return null;
+  return {};
 };
 
 /**
- * Parse .babelrc for preset-env target
+ * Parse .babelrc for target
  */
-const parseBabelRc = (filePath: string): string | null => {
+const parseBabelRc = (filePath: string): { target?: string; outputDir?: string } => {
   const config = readJsonFile(filePath);
 
   if (!isBabelRc(config)) {
     console.warn(`Warning: ${filePath} does not look like a valid .babelrc (missing or invalid presets field).`);
-    return null;
+    return {};
   }
 
   if (config.presets) {
@@ -221,7 +347,7 @@ const parseBabelRc = (filePath: string): string | null => {
           for (const browser of browsers) {
             const target = parseESVersion(browser);
             if (target) {
-              return target;
+              return { target };
             }
           }
         }
@@ -229,45 +355,70 @@ const parseBabelRc = (filePath: string): string | null => {
     }
   }
 
-  return null;
+  return {};
 };
 
 /**
- * Parse vite.config.js/ts for target
+ * Parse vite.config.js/ts for both target and output directory
  */
-const parseViteConfig = (filePath: string): string | null => {
+const parseViteConfig = (filePath: string): { target?: string; outputDir?: string } => {
   const content = readTextFile(filePath);
+  const config = evaluateJsFile(filePath);
 
-  // Look for esbuild target - more flexible pattern
+  const result: { target?: string; outputDir?: string } = {};
+
+  // Look for esbuild target
   const esbuildMatch = content.match(/esbuild\s*:\s*\{[^}]*target\s*:\s*['"`]([^'"`]+)['"`]/s);
   if (esbuildMatch) {
     const target = esbuildMatch[1];
-    return TARGET_MAP[target] || null;
+    const mappedTarget = TARGET_MAP[target];
+    if (mappedTarget) {
+      result.target = mappedTarget;
+    }
   }
 
-  return null;
+  // Look for output directory
+  if (isViteConfig(config) && config.build?.outDir) {
+    result.outputDir = config.build.outDir;
+  }
+
+  return result;
 };
 
 /**
- * Parse webpack.config.js/ts for target
+ * Parse webpack.config.js/ts for both target and output directory
  */
-const parseWebpackConfig = (filePath: string): string | null => {
+const parseWebpackConfig = (filePath: string): { target?: string; outputDir?: string } => {
   const content = readTextFile(filePath);
+  const config = evaluateJsFile(filePath);
+
+  const result: { target?: string; outputDir?: string } = {};
 
   // Look for target configuration
   const targetMatch = content.match(/target.*?['"`]([^'"`]+)['"`]/);
   if (targetMatch) {
     const target = targetMatch[1];
-    return TARGET_MAP[target] || null;
+    const mappedTarget = TARGET_MAP[target];
+    if (mappedTarget) {
+      result.target = mappedTarget;
+    }
   }
 
-  return null;
+  // Look for output directory
+  if (isWebpackConfig(config) && config.output?.path) {
+    // Extract just the directory name from the path
+    const outputPath = config.output.path;
+    const dirName = path.basename(outputPath);
+    result.outputDir = dirName;
+  }
+
+  return result;
 };
 
 /**
  * Parse .browserslistrc or .browserslist file for ES target
  */
-const parseBrowserslistFile = (filePath: string): string | null => {
+const parseBrowserslistFile = (filePath: string): { target?: string; outputDir?: string } => {
   const content = readTextFile(filePath);
   const lines = content
     .split(/\r?\n/)
@@ -277,9 +428,9 @@ const parseBrowserslistFile = (filePath: string): string | null => {
   for (const browser of lines) {
     const target = parseESVersion(browser);
     if (target) {
-      return target;
+      return { target };
     }
   }
 
-  return null;
+  return {};
 };
