@@ -1,4 +1,5 @@
 import { ESLint, Linter } from "eslint";
+import chalk from "chalk";
 import { createESLintConfig } from "./createESLintConfig.js";
 import { Config, Violation, SourceMappedMessage } from "./types.js";
 import { walkDir } from "./walkDir.js";
@@ -212,8 +213,8 @@ export const formatViolationMessage = (
   baseDir: string = process.cwd(),
   explicitFilePath?: string,
 ): string => {
-  const lineCol = `${message.line}:${message.column}`;
-  const ruleInfo = message.ruleId ? ` (${message.ruleId})` : "";
+  const lineCol = chalk.gray(`${message.line}:${message.column}`);
+  const ruleInfo = message.ruleId ? chalk.dim(` (${message.ruleId})`) : "";
 
   let codeFrame = "";
   let filePath: string | undefined;
@@ -234,14 +235,9 @@ export const formatViolationMessage = (
 
     // Handle webpack:// URLs - try to extract the actual file path
     if (originalFile.startsWith("webpack://")) {
-      // Extract the file path from webpack:// URLs
-      // Examples:
-      // webpack://_N_E/src/shared/lib/head.tsx -> src/shared/lib/head.tsx
-      // webpack:///./src/components/Button.tsx -> src/components/Button.tsx
       const match = originalFile.match(/webpack:\/\/[^/]*\/(.+)$/);
       if (match) {
         const extractedPath = match[1];
-        // Try to find the file in common locations
         const possiblePaths = [
           path.join(baseDir, extractedPath),
           path.join(baseDir, "src", extractedPath),
@@ -249,7 +245,6 @@ export const formatViolationMessage = (
           path.join(baseDir, "pages", extractedPath),
           path.join(baseDir, "components", extractedPath),
         ];
-
         for (const possiblePath of possiblePaths) {
           if (fs.existsSync(possiblePath)) {
             filePath = possiblePath;
@@ -258,7 +253,6 @@ export const formatViolationMessage = (
           }
         }
       }
-
       if (!filePath) {
         filePath = undefined;
         canReadSource = false;
@@ -281,7 +275,6 @@ export const formatViolationMessage = (
   if (filePath && canReadSource && line) {
     try {
       const raw = fs.readFileSync(filePath, "utf-8");
-      // Heuristic: don't print code frame if file is minified (single line or very long lines)
       const lines = raw.split(/\r?\n/);
       const isMinified =
         lines.length === 1 || (line <= lines.length && lines[line - 1] && lines[line - 1].length > 300);
@@ -305,31 +298,36 @@ export const formatViolationMessage = (
     const originalLine = sourceMappedMessage.originalLine;
     const originalCol = sourceMappedMessage.originalColumn || 0;
 
-    // Different indicators based on whether we can read the source
+    // ASCII symbols for clarity
     let linkIndicator: string;
     let linkPath: string | undefined;
     if (originalFile.startsWith("webpack://")) {
-      linkIndicator = canReadSource ? "🔗" : "🌐"; // Webpack path (found/not found)
+      linkIndicator = canReadSource ? "[src]" : "[map]";
       if (canReadSource && filePath) linkPath = filePath;
     } else if (canReadSource && filePath) {
-      linkIndicator = "🔗"; // Readable file
+      linkIndicator = "[src]";
       linkPath = filePath;
     } else {
-      linkIndicator = "📄"; // File exists but not readable
+      linkIndicator = "[file]";
     }
 
     // Only make the path clickable if it points to a real file
     let originalDisplay: string;
     if (linkPath && fs.existsSync(linkPath)) {
-      // Use file:// URI so terminals/editors can recognize it as a link
       const fileUri = `file://${linkPath.replace(/\\/g, "/")}`;
-      originalDisplay = `${linkIndicator} Original: ${fileUri}:${originalLine}:${originalCol}`;
+      originalDisplay = `${chalk.magenta(linkIndicator)} ${chalk.bold("Original:")} ${chalk.cyan(fileUri)}:${chalk.yellow(originalLine)}:${chalk.yellow(originalCol)}`;
     } else {
-      originalDisplay = `${linkIndicator} Original: ${originalFile}:${originalLine}:${originalCol}`;
+      originalDisplay = `${chalk.magenta(linkIndicator)} ${chalk.bold("Original:")} ${chalk.cyan(originalFile)}:${chalk.yellow(originalLine)}:${chalk.yellow(originalCol)}`;
     }
 
-    return `${lineCol} - ${message.message}${ruleInfo}\n     ${originalDisplay}${codeFrame}`;
+    const isError = message.severity === 2;
+    const label = isError ? chalk.red.bold("ERROR") : chalk.yellow.bold("WARNING");
+
+    return `${lineCol} ${label}: ${chalk.bold(message.message)}${ruleInfo}\n    ${originalDisplay}${codeFrame}`;
   }
 
-  return `${lineCol} - ${message.message}${ruleInfo}${codeFrame}`;
+  // No source map info
+  const isError = message.severity === 2;
+  const label = isError ? chalk.red.bold("ERROR") : chalk.yellow.bold("WARNING");
+  return `${lineCol} ${label}: ${chalk.bold(message.message)}${ruleInfo}${codeFrame}`;
 };
