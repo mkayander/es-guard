@@ -287,6 +287,7 @@ export const formatViolationMessage = (
             { highlightCode: true, linesAbove: 1, linesBelow: 1 },
           );
       }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       // ignore
     }
