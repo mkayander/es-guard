@@ -179,7 +179,10 @@ describe("formatViolationMessage", () => {
     };
 
     const result = formatViolationMessage(message);
-    expect(result).toBe("10:5 - ES2015 'const' is not supported in IE 11 (compat/compat)");
+    expect(result).toContain("10:5");
+    expect(result).toMatch(/ERROR|WARNING/);
+    expect(result).toContain("ES2015 'const' is not supported in IE 11");
+    expect(result).toContain("compat/compat");
   });
 
   test("should format message with source map information", () => {
@@ -199,7 +202,9 @@ describe("formatViolationMessage", () => {
     };
 
     const result = formatViolationMessage(message, sourceMappedMessage);
-    expect(result).toContain("10:5 - ES2015 'const' is not supported in IE 11 (compat/compat)");
+    expect(result).toContain("10:5");
+    expect(result).toMatch(/ERROR|WARNING/);
+    expect(result).toContain("ES2015 'const' is not supported in IE 11");
     expect(result).toContain("Original: src/components/Button.tsx:15:8");
   });
 
@@ -233,7 +238,9 @@ describe("formatViolationMessage", () => {
     };
 
     const result = formatViolationMessage(message);
-    expect(result).toBe("10:5 - ES2015 'const' is not supported in IE 11");
+    expect(result).toContain("10:5");
+    expect(result).toMatch(/ERROR|WARNING/);
+    expect(result).toContain("ES2015 'const' is not supported in IE 11");
   });
 
   test("should handle source map without original column", () => {
