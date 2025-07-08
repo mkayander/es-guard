@@ -298,7 +298,6 @@ export const formatViolationMessage = (
     const originalLine = sourceMappedMessage.originalLine;
     const originalCol = sourceMappedMessage.originalColumn || 0;
 
-    // ASCII symbols for clarity
     let linkIndicator: string;
     let linkPath: string | undefined;
     if (originalFile.startsWith("webpack://")) {
@@ -323,11 +322,11 @@ export const formatViolationMessage = (
     const isError = message.severity === 2;
     const label = isError ? chalk.red.bold("ERROR") : chalk.yellow.bold("WARNING");
 
-    return `${lineCol} ${label}: ${chalk.bold(message.message)}${ruleInfo}\n    ${originalDisplay}${codeFrame}`;
+    return `${lineCol} ${label}: ${chalk.bold(message.message)}${ruleInfo}\n    ${originalDisplay}\n    ${codeFrame}`;
   }
 
   // No source map info
   const isError = message.severity === 2;
   const label = isError ? chalk.red.bold("ERROR") : chalk.yellow.bold("WARNING");
-  return `${lineCol} ${label}: ${chalk.bold(message.message)}${ruleInfo}${codeFrame}`;
+  return `${lineCol} ${label}: ${chalk.bold(message.message)}${ruleInfo}\n    ${codeFrame}`;
 };
