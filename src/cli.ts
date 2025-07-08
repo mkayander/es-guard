@@ -3,7 +3,7 @@
 import { Command } from "commander";
 import * as fs from "fs";
 import packageJson from "../package.json" with { type: "json" };
-import { checkCompatibility } from "./lib/checkCompatiblity.js";
+import { checkCompatibility, formatViolationMessage } from "./lib/checkCompatiblity.js";
 import { getBrowserTargetsFromString } from "./lib/getBrowserTargets.js";
 import { detectTarget, detectOutputDir } from "./lib/detectTarget.js";
 import { setVerboseMode } from "./lib/globalState.js";
@@ -248,8 +248,11 @@ program.action(
         console.error(`❌ Found ${errors.length} file(s) with compatibility errors:`);
         for (const violation of errors) {
           console.error(`\n📄 ${violation.file}:`);
-          for (const message of violation.messages) {
-            console.error(`   ${message.line}:${message.column} - ${message.message} (${message.ruleId})`);
+          for (let i = 0; i < violation.messages.length; i++) {
+            const message = violation.messages[i];
+            const sourceMappedMessage = violation.sourceMappedMessages?.[i];
+            const formattedMessage = formatViolationMessage(message, sourceMappedMessage, process.cwd());
+            console.error(`   ${formattedMessage}`);
           }
         }
       }
@@ -258,8 +261,11 @@ program.action(
         console.warn(`⚠️  Found ${warnings.length} file(s) with compatibility warnings:`);
         for (const violation of warnings) {
           console.warn(`\n📄 ${violation.file}:`);
-          for (const message of violation.messages) {
-            console.warn(`   ${message.line}:${message.column} - ${message.message} (${message.ruleId})`);
+          for (let i = 0; i < violation.messages.length; i++) {
+            const message = violation.messages[i];
+            const sourceMappedMessage = violation.sourceMappedMessages?.[i];
+            const formattedMessage = formatViolationMessage(message, sourceMappedMessage, process.cwd());
+            console.warn(`   ${formattedMessage}`);
           }
         }
       }

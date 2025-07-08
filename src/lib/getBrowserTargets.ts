@@ -49,7 +49,7 @@ export const getBrowserTargets = (target?: Linter.EcmaVersion | null): string =>
     case 8:
     case 2016:
     case 2017:
-      return "> 1%, last 2 versions, not dead, not ie 11";
+      return "> 1%, last 2 versions, not dead, not ie 11, not op_mini all";
 
     // ES2018-2019 (ES9-10) - More modern browsers
     case 9:
@@ -82,7 +82,7 @@ export const getBrowserTargets = (target?: Linter.EcmaVersion | null): string =>
 
     // Default fallback for unknown versions
     default:
-      return "> 1%, last 2 versions, not dead";
+      return "> 1%, last 2 versions, not dead, not op_mini all";
   }
 };
 

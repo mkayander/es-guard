@@ -1,8 +1,9 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
-import { checkCompatibility } from "./checkCompatiblity.js";
-import type { Config } from "./types.js";
+import { checkCompatibility, formatViolationMessage } from "./checkCompatiblity.js";
+import type { Config, SourceMappedMessage } from "./types.js";
+import type { Linter } from "eslint";
 
 // Mock ESLint to avoid actual linting during tests
 const mockLintFiles = vi.fn();
@@ -164,5 +165,94 @@ describe("checkCompatibility", () => {
 
     const result = await checkCompatibility(config);
     expect(result).toEqual({ errors: [], warnings: [] });
+  });
+});
+
+describe("formatViolationMessage", () => {
+  test("should format message without source map information", () => {
+    const message: Linter.LintMessage = {
+      ruleId: "compat/compat",
+      severity: 2,
+      message: "ES2015 'const' is not supported in IE 11",
+      line: 10,
+      column: 5,
+    };
+
+    const result = formatViolationMessage(message);
+    expect(result).toBe("10:5 - ES2015 'const' is not supported in IE 11 (compat/compat)");
+  });
+
+  test("should format message with source map information", () => {
+    const message: Linter.LintMessage = {
+      ruleId: "compat/compat",
+      severity: 2,
+      message: "ES2015 'const' is not supported in IE 11",
+      line: 10,
+      column: 5,
+    };
+
+    const sourceMappedMessage: SourceMappedMessage = {
+      ...message,
+      originalFile: "src/components/Button.tsx",
+      originalLine: 15,
+      originalColumn: 8,
+    };
+
+    const result = formatViolationMessage(message, sourceMappedMessage);
+    expect(result).toContain("10:5 - ES2015 'const' is not supported in IE 11 (compat/compat)");
+    expect(result).toContain("Original: src/components/Button.tsx:15:8");
+  });
+
+  test("should handle source map with webpack:// prefix", () => {
+    const message: Linter.LintMessage = {
+      ruleId: "compat/compat",
+      severity: 2,
+      message: "ES2015 'const' is not supported in IE 11",
+      line: 10,
+      column: 5,
+    };
+
+    const sourceMappedMessage: SourceMappedMessage = {
+      ...message,
+      originalFile: "webpack:///./src/components/Button.tsx",
+      originalLine: 15,
+      originalColumn: 8,
+    };
+
+    const result = formatViolationMessage(message, sourceMappedMessage);
+    expect(result).toContain("Original: webpack:///./src/components/Button.tsx:15:8");
+  });
+
+  test("should handle message without ruleId", () => {
+    const message: Linter.LintMessage = {
+      ruleId: null,
+      severity: 2,
+      message: "ES2015 'const' is not supported in IE 11",
+      line: 10,
+      column: 5,
+    };
+
+    const result = formatViolationMessage(message);
+    expect(result).toBe("10:5 - ES2015 'const' is not supported in IE 11");
+  });
+
+  test("should handle source map without original column", () => {
+    const message: Linter.LintMessage = {
+      ruleId: "compat/compat",
+      severity: 2,
+      message: "ES2015 'const' is not supported in IE 11",
+      line: 10,
+      column: 5,
+    };
+
+    const sourceMappedMessage: SourceMappedMessage = {
+      ...message,
+      originalFile: "src/components/Button.tsx",
+      originalLine: 15,
+      // originalColumn is undefined
+    };
+
+    const result = formatViolationMessage(message, sourceMappedMessage);
+    expect(result).toContain("Original: src/components/Button.tsx:15:0");
   });
 });

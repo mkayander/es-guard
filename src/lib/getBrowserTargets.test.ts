@@ -10,12 +10,12 @@ describe("getBrowserTargetsFromString", () => {
 
     test("should exclude IE11 for ES2016", () => {
       const result = getBrowserTargetsFromString("2016");
-      expect(result).toBe("> 1%, last 2 versions, not dead, not ie 11");
+      expect(result).toBe("> 1%, last 2 versions, not dead, not ie 11, not op_mini all");
     });
 
     test("should exclude IE11 for ES2017", () => {
       const result = getBrowserTargetsFromString("2017");
-      expect(result).toBe("> 1%, last 2 versions, not dead, not ie 11");
+      expect(result).toBe("> 1%, last 2 versions, not dead, not ie 11, not op_mini all");
     });
 
     test("should exclude IE11 and Opera Mini for ES2018", () => {
@@ -52,7 +52,7 @@ describe("getBrowserTargetsFromString", () => {
 
     test("should support ES7 (equivalent to ES2016)", () => {
       const result = getBrowserTargetsFromString("7");
-      expect(result).toBe("> 1%, last 2 versions, not dead, not ie 11");
+      expect(result).toBe("> 1%, last 2 versions, not dead, not ie 11, not op_mini all");
     });
 
     test("should support ES11 (equivalent to ES2020)", () => {
@@ -71,17 +71,17 @@ describe("getBrowserTargetsFromString", () => {
 
     test("should use latest targets for future ES versions", () => {
       const result = getBrowserTargetsFromString("2030");
-      expect(result).toBe("> 1%, last 2 versions, not dead");
+      expect(result).toBe("> 1%, last 2 versions, not dead, not op_mini all");
     });
 
     test("should handle invalid target gracefully", () => {
       const result = getBrowserTargetsFromString("invalid");
-      expect(result).toBe("> 1%, last 2 versions, not dead");
+      expect(result).toBe("> 1%, last 2 versions, not dead, not op_mini all");
     });
 
     test("should handle empty string gracefully", () => {
       const result = getBrowserTargetsFromString("");
-      expect(result).toBe("> 1%, last 2 versions, not dead");
+      expect(result).toBe("> 1%, last 2 versions, not dead, not op_mini all");
     });
   });
 
@@ -95,7 +95,7 @@ describe("getBrowserTargetsFromString", () => {
     test("should handle year that doesn't have direct mapping", () => {
       // This should fall back to default
       const result = getBrowserTargetsFromString("1999");
-      expect(result).toBe("> 1%, last 2 versions, not dead");
+      expect(result).toBe("> 1%, last 2 versions, not dead, not op_mini all");
     });
   });
 });
