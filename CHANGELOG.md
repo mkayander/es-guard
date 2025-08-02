@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/mkayander/es-guard/compare/v1.6.0...v1.7.0) (2025-08-02)
+
+
+### Features
+
+* Enhance CLI configuration detection and update test cases ([4f417b0](https://github.com/mkayander/es-guard/commit/4f417b045b12776d814db4abcbc024b4e606f7ce))
+
 # [1.6.0](https://github.com/mkayander/es-guard/compare/v1.5.0...v1.6.0) (2025-08-02)
 
 
