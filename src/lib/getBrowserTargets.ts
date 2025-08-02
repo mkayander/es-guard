@@ -1,4 +1,4 @@
-import { Linter } from "eslint";
+import type { Linter } from "eslint";
 
 /**
  * Converts a string target to Linter.EcmaVersion type.
