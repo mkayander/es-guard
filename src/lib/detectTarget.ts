@@ -28,24 +28,6 @@ const CONFIG_FILE_NAMES = [
 ];
 
 /**
- * Parse ES version from string (e.g., "es6", "es2020", "ES2015")
- * Returns the year as a string, or null if not found
- */
-const parseESVersion = (str: string): string | null => {
-  const esMatch = str.match(/es(\d+)/i);
-  if (esMatch) {
-    const esVersion = parseInt(esMatch[1]);
-    // If it's a 4-digit year (like 2020), use it directly
-    if (esVersion >= 2000) {
-      return esVersion.toString();
-    }
-    // Otherwise convert ES version to year: ES6=2015, ES7=2016, ES8=2017, etc.
-    return (2009 + esVersion).toString();
-  }
-  return null;
-};
-
-/**
  * Common target mapping for TypeScript, Vite, and Webpack configs
  */
 const TARGET_MAP: Record<string, string> = {
@@ -188,13 +170,24 @@ const isNextConfig = (
 };
 
 /**
- * Combined detection result type
+ * Parser result type for individual config files
+ */
+type ParserResult = {
+  target?: string;
+  outputDir?: string;
+  browserslist?: string[];
+};
+
+/**
+ * Detection result type for all project configuration
  */
 type DetectionResult = {
   target?: string;
   targetSource?: string;
   outputDir?: string;
   outputSource?: string;
+  browserslist?: string[];
+  browserslistSource?: string;
 };
 
 /**
@@ -227,21 +220,20 @@ const getParser = (filename: string) => {
 /**
  * Get all possible config file names for detection
  */
-const getConfigFileNames = () => {
+export const getConfigFileNames = () => {
   return CONFIG_FILE_NAMES;
 };
 
 /**
- * Detects both ES target and output directory from common frontend project configuration files.
- * Searches in order of preference: package.json, .browserslistrc/.browserslist, tsconfig.json, babel.config.js, .babelrc, vite.config.js, webpack.config.js
- * Returns an object with detected target and output directory information
+ * Detection function that extracts all configuration in a single pass
+ * This is more efficient than separate detection functions
  */
-export const detectTargetAndOutput = (cwd: string = process.cwd()): DetectionResult => {
+export const detectProjectConfig = (cwd: string = process.cwd()): DetectionResult => {
   const configFileNames = getConfigFileNames();
   const result: DetectionResult = {};
 
   if (verboseMode) {
-    console.log("🔍 Starting configuration file detection...");
+    console.log("🔍 Starting configuration detection...");
     console.log(`📂 Scanning directory: ${cwd}`);
     console.log("📋 Files to check:");
     configFileNames.forEach((filename, index) => {
@@ -301,10 +293,27 @@ export const detectTargetAndOutput = (cwd: string = process.cwd()): DetectionRes
           console.log(`      📁 Output directory: not found`);
         }
 
-        // If we found both target and output directory, we can stop searching
-        if (result.target && result.outputDir) {
+        // Update browserslist if found and not already set
+        if (detection.browserslist && !result.browserslist) {
+          result.browserslist = detection.browserslist;
+          result.browserslistSource = filename;
           if (verboseMode) {
-            console.log(`   ✅ Both target and output directory found, stopping search`);
+            console.log(
+              `      🌐 Browserslist: ${detection.browserslist.join(", ")} (from ${result.browserslistSource})`,
+            );
+          }
+        } else if (verboseMode && detection.browserslist) {
+          console.log(
+            `      🌐 Browserslist: ${detection.browserslist.join(", ")} (already found in ${result.browserslistSource})`,
+          );
+        } else if (verboseMode) {
+          console.log(`      🌐 Browserslist: not found`);
+        }
+
+        // If we found all three (target, output directory, and browserslist), we can stop searching
+        if (result.target && result.outputDir && result.browserslist) {
+          if (verboseMode) {
+            console.log(`   ✅ All configuration found, stopping search`);
           }
           break;
         }
@@ -335,6 +344,12 @@ export const detectTargetAndOutput = (cwd: string = process.cwd()): DetectionRes
     } else {
       console.log(`   📁 Output directory: not found`);
     }
+
+    if (result.browserslist) {
+      console.log(`   🌐 Browserslist: ${result.browserslist.join(", ")} (from ${result.browserslistSource})`);
+    } else {
+      console.log(`   🌐 Browserslist: not found`);
+    }
     console.log("");
   }
 
@@ -345,7 +360,7 @@ export const detectTargetAndOutput = (cwd: string = process.cwd()): DetectionRes
  * Legacy function for backward compatibility - detects only ES target
  */
 export const detectTarget = (cwd: string = process.cwd()): { target: string; source: string } | null => {
-  const result = detectTargetAndOutput(cwd);
+  const result = detectProjectConfig(cwd);
   return result.target ? { target: result.target, source: result.targetSource! } : null;
 };
 
@@ -353,14 +368,37 @@ export const detectTarget = (cwd: string = process.cwd()): { target: string; sou
  * Legacy function for backward compatibility - detects only output directory
  */
 export const detectOutputDir = (cwd: string = process.cwd()): { outputDir: string; source: string } | null => {
-  const result = detectTargetAndOutput(cwd);
+  const result = detectProjectConfig(cwd);
   return result.outputDir ? { outputDir: result.outputDir, source: result.outputSource! } : null;
+};
+
+/**
+ * Legacy function for backward compatibility - detects only browserslist
+ */
+export const detectBrowserslist = (cwd: string = process.cwd()): { browserslist: string[]; source: string } | null => {
+  const result = detectProjectConfig(cwd);
+  return result.browserslist ? { browserslist: result.browserslist, source: result.browserslistSource! } : null;
+};
+
+/**
+ * Legacy function for backward compatibility - detects target and output directory
+ */
+export const detectTargetAndOutput = (cwd: string = process.cwd()): DetectionResult => {
+  const result = detectProjectConfig(cwd);
+  return {
+    target: result.target,
+    targetSource: result.targetSource,
+    outputDir: result.outputDir,
+    outputSource: result.outputSource,
+    browserslist: result.browserslist,
+    browserslistSource: result.browserslistSource,
+  };
 };
 
 /**
  * Parse package.json for both target and output directory
  */
-const parsePackageJson = (filePath: string): { target?: string; outputDir?: string } => {
+const parsePackageJson = (filePath: string): ParserResult => {
   const pkg = readJsonFile(filePath);
 
   if (!isPackageJson(pkg)) {
@@ -370,22 +408,14 @@ const parsePackageJson = (filePath: string): { target?: string; outputDir?: stri
     return {};
   }
 
-  const result: { target?: string; outputDir?: string } = {};
+  const result: ParserResult = {};
 
-  // Check for browserslist field for target
+  // Check for browserslist field
   if (pkg.browserslist) {
     const browserslist = Array.isArray(pkg.browserslist) ? pkg.browserslist : [pkg.browserslist];
 
-    // Look for ES target in browserslist
-    for (const browser of browserslist) {
-      if (typeof browser === "string") {
-        const target = parseESVersion(browser);
-        if (target) {
-          result.target = target;
-          break;
-        }
-      }
-    }
+    // Store the full browserslist for CLI defaults
+    result.browserslist = browserslist.filter((browser) => typeof browser === "string");
   }
 
   // Check for output directory hints
@@ -406,7 +436,7 @@ const parsePackageJson = (filePath: string): { target?: string; outputDir?: stri
 /**
  * Parse tsconfig.json for both target and output directory
  */
-const parseTsConfig = (filePath: string): { target?: string; outputDir?: string } => {
+const parseTsConfig = (filePath: string): ParserResult => {
   const config = readJsonFile(filePath);
 
   if (!isTsConfig(config)) {
@@ -416,7 +446,7 @@ const parseTsConfig = (filePath: string): { target?: string; outputDir?: string 
     return {};
   }
 
-  const result: { target?: string; outputDir?: string } = {};
+  const result: ParserResult = {};
 
   if (config.compilerOptions?.target) {
     const target = config.compilerOptions.target;
@@ -436,8 +466,10 @@ const parseTsConfig = (filePath: string): { target?: string; outputDir?: string 
 /**
  * Parse babel.config.js for target
  */
-const parseBabelConfig = (filePath: string): { target?: string; outputDir?: string } => {
+const parseBabelConfig = (filePath: string): ParserResult => {
   const content = readTextFile(filePath);
+
+  const result: ParserResult = {};
 
   // Look for @babel/preset-env configuration
   const presetEnvMatch = content.match(/@babel\/preset-env.*?targets.*?(\{[^}]*\})/s);
@@ -448,20 +480,24 @@ const parseBabelConfig = (filePath: string): { target?: string; outputDir?: stri
     const browsersMatch = targetsStr.match(/browsers.*?\[(.*?)\]/);
     if (browsersMatch) {
       const browsers = browsersMatch[1];
-      const target = parseESVersion(browsers);
-      if (target) {
-        return { target };
-      }
+      // Parse browsers array from string
+      const browsersList = browsers
+        .split(",")
+        .map((b) => b.trim().replace(/['"]/g, ""))
+        .filter((b) => b);
+
+      // Store the full browserslist for CLI defaults
+      result.browserslist = browsersList;
     }
   }
 
-  return {};
+  return result;
 };
 
 /**
  * Parse .babelrc for target
  */
-const parseBabelRc = (filePath: string): { target?: string; outputDir?: string } => {
+const parseBabelRc = (filePath: string): ParserResult => {
   const config = readJsonFile(filePath);
 
   if (!isBabelRc(config)) {
@@ -469,30 +505,28 @@ const parseBabelRc = (filePath: string): { target?: string; outputDir?: string }
     return {};
   }
 
+  const result: ParserResult = {};
+
   if (config.presets) {
     for (const preset of config.presets) {
       if (Array.isArray(preset) && preset[0] === "@babel/preset-env") {
         const options = preset[1];
         if (options?.targets?.browsers) {
           const browsers = options.targets.browsers;
-          for (const browser of browsers) {
-            const target = parseESVersion(browser);
-            if (target) {
-              return { target };
-            }
-          }
+          // Store the full browserslist for CLI defaults
+          result.browserslist = browsers;
         }
       }
     }
   }
 
-  return {};
+  return result;
 };
 
 /**
  * Parse vite.config.js/ts for both target and output directory
  */
-const parseViteConfig = (filePath: string): { target?: string; outputDir?: string } => {
+const parseViteConfig = (filePath: string): ParserResult => {
   const content = readTextFile(filePath);
   const config = evaluateJsFile(filePath);
 
@@ -519,7 +553,7 @@ const parseViteConfig = (filePath: string): { target?: string; outputDir?: strin
 /**
  * Parse webpack.config.js/ts for both target and output directory
  */
-const parseWebpackConfig = (filePath: string): { target?: string; outputDir?: string } => {
+const parseWebpackConfig = (filePath: string): ParserResult => {
   const content = readTextFile(filePath);
   const config = evaluateJsFile(filePath);
 
@@ -547,29 +581,27 @@ const parseWebpackConfig = (filePath: string): { target?: string; outputDir?: st
 };
 
 /**
- * Parse .browserslistrc or .browserslist file for ES target
+ * Parse .browserslistrc or .browserslist file for browserslist
  */
-const parseBrowserslistFile = (filePath: string): { target?: string; outputDir?: string } => {
+const parseBrowserslistFile = (filePath: string): ParserResult => {
   const content = readTextFile(filePath);
   const lines = content
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter((line) => line && !line.startsWith("#"));
 
-  for (const browser of lines) {
-    const target = parseESVersion(browser);
-    if (target) {
-      return { target };
-    }
-  }
+  const result: ParserResult = {};
 
-  return {};
+  // Store the full browserslist for CLI defaults
+  result.browserslist = lines;
+
+  return result;
 };
 
 /**
  * Parse next.config.js/ts/cjs/mjs for output directory
  */
-const parseNextConfig = (filePath: string): { target?: string; outputDir?: string } => {
+const parseNextConfig = (filePath: string): ParserResult => {
   const config = evaluateJsFile(filePath);
 
   if (!isNextConfig(config)) {

@@ -81,7 +81,7 @@ describe("CLI Tests", () => {
     });
     expect(result).toContain("ES-Guard");
     expect(result).toContain("Scanning directory");
-    expect(result).toContain("auto-determined");
+    expect(result).toContain("auto-detected from package.json");
   });
 
   test("should work with numeric ES versions", () => {
@@ -115,7 +115,7 @@ describe("CLI Tests", () => {
     const testFile = path.join(testDir, "test.js");
     fs.writeFileSync(testFile, 'console.log("test");');
 
-    // Create package.json with browserslist
+    // Create package.json with tsconfig target
     const packageJson = path.join(testDir, "package.json");
     fs.writeFileSync(
       packageJson,
@@ -125,12 +125,21 @@ describe("CLI Tests", () => {
       }),
     );
 
+    // Create tsconfig.json with target
+    const tsconfigJson = path.join(testDir, "tsconfig.json");
+    fs.writeFileSync(
+      tsconfigJson,
+      JSON.stringify({
+        compilerOptions: { target: "ES2018" },
+      }),
+    );
+
     const result = execSync(`node "${CLI_CMD}" "${testDir}"`, {
       encoding: "utf8",
       cwd: testDir,
     });
     expect(result).toContain("ES-Guard");
-    expect(result).toContain("Target ES version: 2018 (auto-detected from package.json)");
+    expect(result).toContain("Target ES version: 2018 (auto-detected from tsconfig.json)");
   });
 
   test("should auto-detect target from tsconfig.json", () => {
@@ -185,11 +194,20 @@ describe("CLI Tests", () => {
       }),
     );
 
+    // Create tsconfig.json with target
+    const tsconfigJson = path.join(testDir, "tsconfig.json");
+    fs.writeFileSync(
+      tsconfigJson,
+      JSON.stringify({
+        compilerOptions: { target: "ES2019" },
+      }),
+    );
+
     const result = execSync(`node "${CLI_CMD}" "${subDir}"`, {
       encoding: "utf8",
       cwd: testDir,
     });
     expect(result).toContain("ES-Guard");
-    expect(result).toContain("Target ES version: 2019 (auto-detected from package.json)");
+    expect(result).toContain("Target ES version: 2019 (auto-detected from tsconfig.json)");
   });
 });

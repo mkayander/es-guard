@@ -5,9 +5,9 @@ import * as fs from "fs";
 import packageJson from "../package.json" with { type: "json" };
 import { checkCompatibility, formatViolationMessage } from "./lib/checkCompatiblity.js";
 import { getBrowserTargetsFromString } from "./lib/getBrowserTargets.js";
-import { detectTarget, detectOutputDir } from "./lib/detectTarget.js";
+import { detectProjectConfig, getConfigFileNames } from "./lib/detectTarget.js";
+
 import { setVerboseMode } from "./lib/globalState.js";
-import path from "path";
 
 const version = packageJson.version;
 
@@ -93,26 +93,31 @@ program.action(
       // Set global verbose mode
       setVerboseMode(options.verbose || false);
 
-      // Auto-detect output directory if not specified
+      // Auto-detect configuration if not specified
       let scanDirectory: string;
       let outputDirSource: string;
+      let target: string | undefined;
+      let targetSource: string;
+      let browserTargets: string;
+      let browserslistSource: string;
 
+      if (options.verbose) {
+        console.log("🔍 Auto-detecting project configuration...");
+        console.log(`📂 Searching in: ${process.cwd()}`);
+        console.log("");
+      }
+
+      // Use unified detection to get all configuration at once
+      const detectedConfig = detectProjectConfig(process.cwd());
+
+      // Handle directory detection
       if (!directory) {
-        if (options.verbose) {
-          console.log("🔍 No directory specified, auto-detecting output directory from project configuration files...");
-          console.log(`📂 Searching in: ${process.cwd()}`);
-          console.log("");
-        }
-
-        // Try to detect output directory from current working directory
-        const detectedOutput = detectOutputDir(process.cwd());
-
-        if (detectedOutput) {
-          scanDirectory = detectedOutput.outputDir;
-          outputDirSource = `auto-detected from ${detectedOutput.source}`;
+        if (detectedConfig.outputDir) {
+          scanDirectory = detectedConfig.outputDir;
+          outputDirSource = `auto-detected from ${detectedConfig.outputSource}`;
 
           if (options.verbose) {
-            console.log(`✅ Found output directory: ${scanDirectory} in ${detectedOutput.source}`);
+            console.log(`✅ Found output directory: ${scanDirectory} in ${detectedConfig.outputSource}`);
           }
         } else {
           if (options.verbose) {
@@ -140,84 +145,50 @@ program.action(
         process.exit(1);
       }
 
-      // Determine target - use provided target or auto-detect
-      let target = options.target;
-      let targetSource = "specified";
-
-      if (!target) {
+      // Handle target detection
+      if (options.target) {
+        target = options.target;
+        targetSource = "specified";
+      } else if (detectedConfig.target) {
+        target = detectedConfig.target;
+        targetSource = `auto-detected from ${detectedConfig.targetSource}`;
+      } else {
         if (options.verbose) {
-          console.log("🔍 Auto-detecting ES target from project configuration files...");
-          console.log(`📂 Searching in: ${process.cwd()}`);
+          console.log("❌ No valid configuration files found for target detection");
+          console.log("📋 Searched for:");
+          const configFileNames = getConfigFileNames();
+          configFileNames.forEach((filename, index) => {
+            console.log(`   ${index + 1}. ${filename}`);
+          });
           console.log("");
         }
 
-        // Try to detect target from current working directory
-        const detectedResult = detectTarget(process.cwd());
-
-        if (detectedResult) {
-          target = detectedResult.target;
-          targetSource = `auto-detected from ${detectedResult.source}`;
-        } else {
-          if (options.verbose) {
-            console.log("❌ No valid configuration files found for target detection");
-            console.log("📋 Searched for:");
-            console.log("   - package.json (browserslist field)");
-            console.log("   - .browserslistrc/.browserslist");
-            console.log("   - tsconfig.json (compilerOptions.target)");
-            console.log("   - babel.config.js/.babelrc (@babel/preset-env targets)");
-            console.log("   - vite.config.js/ts (esbuild target)");
-            console.log("   - webpack.config.js/ts (target)");
-            console.log("   - next.config.js/ts (output directory)");
-            console.log("");
-          }
-
-          console.error("Error: No target specified and could not auto-detect from project configuration files.");
-          console.error("Please specify a target with --target or ensure your project has a valid configuration file.");
-          process.exit(1);
-        }
+        console.error("Error: No target specified and could not auto-detect from project configuration files.");
+        console.error("Please specify a target with --target or ensure your project has a valid configuration file.");
+        process.exit(1);
       }
 
-      // Determine browser targets
-      let browserTargets: string;
+      // Handle browser targets detection
       if (options.browsers) {
         browserTargets = options.browsers;
+        browserslistSource = "specified";
         if (options.verbose) {
           console.log(`🌐 Using specified browser targets: ${browserTargets}`);
         }
-      } else {
-        // If auto-detected from package.json or browserslist file, check for ES version strings
-        if (targetSource.startsWith("auto-detected from ")) {
-          const configFile = targetSource.replace("auto-detected from ", "");
-          let browserslistEntries: string[] = [];
-          if (configFile === "package.json") {
-            const pkgPath = path.join(process.cwd(), "package.json");
-            if (fs.existsSync(pkgPath)) {
-              const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
-              if (pkg.browserslist) {
-                browserslistEntries = Array.isArray(pkg.browserslist) ? pkg.browserslist : [pkg.browserslist];
-              }
-            }
-          } else if (configFile === ".browserslistrc" || configFile === ".browserslist") {
-            const blPath = path.join(process.cwd(), configFile);
-            if (fs.existsSync(blPath)) {
-              browserslistEntries = fs
-                .readFileSync(blPath, "utf-8")
-                .split(/\r?\n/)
-                .map((l: string) => l.trim())
-                .filter((l: string) => l && !l.startsWith("#"));
-            }
-          }
-          const esVersionRegex = /^es\d{1,4}$/i;
-          const invalidEntries = browserslistEntries.filter((entry) => esVersionRegex.test(entry));
-          if (invalidEntries.length > 0) {
-            console.warn(
-              `Warning: Detected ES version string(s) in browserslist (${invalidEntries.join(", ")}). These are not valid Browserslist queries and will be ignored for browser compatibility checks.`,
-            );
-          }
-        }
-        browserTargets = getBrowserTargetsFromString(target);
+      } else if (detectedConfig.browserslist) {
+        // Use the detected browserslist
+        browserTargets = detectedConfig.browserslist.join(", ");
+        browserslistSource = `auto-detected from ${detectedConfig.browserslistSource}`;
+
         if (options.verbose) {
-          console.log(`🌐 Auto-determined browser targets: ${browserTargets}`);
+          console.log(`🌐 Using detected browserslist: ${browserTargets} (from ${detectedConfig.browserslistSource})`);
+        }
+      } else {
+        // No browserslist detected, auto-determine from target
+        browserTargets = getBrowserTargetsFromString(target);
+        browserslistSource = "auto-determined from target";
+        if (options.verbose) {
+          console.log(`🌐 No browserslist detected, auto-determining from target: ${browserTargets}`);
         }
       }
 
@@ -227,6 +198,7 @@ program.action(
         console.log(`   Target ES version: ${target}`);
         console.log(`   Target source: ${targetSource}`);
         console.log(`   Browser targets: ${browserTargets}`);
+        console.log(`   Browserslist source: ${browserslistSource}`);
         console.log(`   Scan directory: ${scanDirectory}`);
         console.log(`   Output directory source: ${outputDirSource}`);
         console.log("");
@@ -235,7 +207,7 @@ program.action(
       console.log(`🔍 ES-Guard v${version}`);
       console.log(`📁 Scanning directory: ${scanDirectory}`);
       console.log(`🎯 Target ES version: ${target} (${targetSource})`);
-      console.log(`🌐 Browser targets: ${browserTargets}${options.browsers ? "" : " (auto-determined)"}`);
+      console.log(`🌐 Browser targets: ${browserTargets} (${browserslistSource})`);
       console.log("");
 
       const { errors, warnings } = await checkCompatibility({

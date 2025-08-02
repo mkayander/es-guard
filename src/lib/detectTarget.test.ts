@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
-import { detectTarget, detectOutputDir, detectTargetAndOutput } from "./detectTarget.js";
+import { detectTarget, detectOutputDir, detectTargetAndOutput, detectBrowserslist } from "./detectTarget.js";
 
 describe("detectTarget", () => {
   let tempDir: string;
@@ -22,7 +22,7 @@ describe("detectTarget", () => {
   };
 
   describe("target detection", () => {
-    it("should detect target from browserslist with ES version", () => {
+    it("should not detect target from browserslist (ES version detection removed)", () => {
       writeFile(
         "package.json",
         JSON.stringify({
@@ -30,10 +30,10 @@ describe("detectTarget", () => {
         }),
       );
 
-      expect(detectTarget(tempDir)).toEqual({ target: "2015", source: "package.json" });
+      expect(detectTarget(tempDir)).toBeNull();
     });
 
-    it("should detect target from browserslist array", () => {
+    it("should not detect target from browserslist array (ES version detection removed)", () => {
       writeFile(
         "package.json",
         JSON.stringify({
@@ -41,7 +41,7 @@ describe("detectTarget", () => {
         }),
       );
 
-      expect(detectTarget(tempDir)).toEqual({ target: "2020", source: "package.json" });
+      expect(detectTarget(tempDir)).toBeNull();
     });
 
     it("should not detect target from engines.node (dev dependency)", () => {
@@ -55,7 +55,7 @@ describe("detectTarget", () => {
       expect(detectTarget(tempDir)).toBeNull();
     });
 
-    it("should detect target from browserslist even with engines.node present", () => {
+    it("should not detect target from browserslist even with engines.node present (ES version detection removed)", () => {
       writeFile(
         "package.json",
         JSON.stringify({
@@ -64,7 +64,7 @@ describe("detectTarget", () => {
         }),
       );
 
-      expect(detectTarget(tempDir)).toEqual({ target: "2018", source: "package.json" });
+      expect(detectTarget(tempDir)).toBeNull();
     });
 
     it("should return null for package.json without target info", () => {
@@ -274,7 +274,7 @@ describe("detectTarget", () => {
       });
     });
 
-    it("should detect target from package.json and output from vite.config.js", () => {
+    it("should detect browserslist from package.json and output from vite.config.js", () => {
       writeFile(
         "package.json",
         JSON.stringify({
@@ -293,10 +293,12 @@ describe("detectTarget", () => {
 
       const result = detectTargetAndOutput(tempDir);
       expect(result).toEqual({
-        target: "2018",
-        targetSource: "package.json",
+        target: undefined,
+        targetSource: undefined,
         outputDir: "build",
         outputSource: "vite.config.js",
+        browserslist: ["es2018"],
+        browserslistSource: "package.json",
       });
     });
 
@@ -314,6 +316,8 @@ describe("detectTarget", () => {
         targetSource: "tsconfig.json",
         outputDir: undefined,
         outputSource: undefined,
+        browserslist: undefined,
+        browserslistSource: undefined,
       });
     });
 
@@ -324,6 +328,8 @@ describe("detectTarget", () => {
         targetSource: undefined,
         outputDir: undefined,
         outputSource: undefined,
+        browserslist: undefined,
+        browserslistSource: undefined,
       });
     });
   });
@@ -365,7 +371,7 @@ describe("detectTarget", () => {
   });
 
   describe("ES version parsing edge cases", () => {
-    it("should handle ES7 conversion to 2016", () => {
+    it("should not detect target from ES7 in browserslist (ES version detection removed)", () => {
       writeFile(
         "package.json",
         JSON.stringify({
@@ -373,10 +379,10 @@ describe("detectTarget", () => {
         }),
       );
 
-      expect(detectTarget(tempDir)).toEqual({ target: "2016", source: "package.json" });
+      expect(detectTarget(tempDir)).toBeNull();
     });
 
-    it("should handle ES8 conversion to 2017", () => {
+    it("should not detect target from ES8 in browserslist (ES version detection removed)", () => {
       writeFile(
         "package.json",
         JSON.stringify({
@@ -384,10 +390,10 @@ describe("detectTarget", () => {
         }),
       );
 
-      expect(detectTarget(tempDir)).toEqual({ target: "2017", source: "package.json" });
+      expect(detectTarget(tempDir)).toBeNull();
     });
 
-    it("should handle ES2020 as direct year", () => {
+    it("should not detect target from ES2020 in browserslist (ES version detection removed)", () => {
       writeFile(
         "package.json",
         JSON.stringify({
@@ -395,10 +401,10 @@ describe("detectTarget", () => {
         }),
       );
 
-      expect(detectTarget(tempDir)).toEqual({ target: "2020", source: "package.json" });
+      expect(detectTarget(tempDir)).toBeNull();
     });
 
-    it("should handle ES3 conversion to 1999", () => {
+    it("should handle ES3 conversion to 1999 from tsconfig", () => {
       writeFile(
         "tsconfig.json",
         JSON.stringify({
@@ -409,7 +415,7 @@ describe("detectTarget", () => {
       expect(detectTarget(tempDir)).toEqual({ target: "1999", source: "tsconfig.json" });
     });
 
-    it("should handle ES5 conversion to 2009", () => {
+    it("should handle ES5 conversion to 2009 from tsconfig", () => {
       writeFile(
         "tsconfig.json",
         JSON.stringify({
@@ -573,7 +579,7 @@ describe("detectTarget", () => {
   });
 
   describe("browserslist parsing edge cases", () => {
-    it("should handle .browserslistrc with comments", () => {
+    it("should handle .browserslistrc with comments (no target detection)", () => {
       writeFile(
         ".browserslistrc",
         `# This is a comment
@@ -581,10 +587,10 @@ es2020
 > 1%`,
       );
 
-      expect(detectTarget(tempDir)).toEqual({ target: "2020", source: ".browserslistrc" });
+      expect(detectTarget(tempDir)).toBeNull();
     });
 
-    it("should handle .browserslistrc with empty lines", () => {
+    it("should handle .browserslistrc with empty lines (no target detection)", () => {
       writeFile(
         ".browserslistrc",
         `
@@ -594,7 +600,7 @@ es2020
 > 1%`,
       );
 
-      expect(detectTarget(tempDir)).toEqual({ target: "2020", source: ".browserslistrc" });
+      expect(detectTarget(tempDir)).toBeNull();
     });
 
     it("should handle .browserslistrc without ES versions", () => {
@@ -607,10 +613,10 @@ last 2 versions`,
       expect(detectTarget(tempDir)).toBeNull();
     });
 
-    it("should handle .browserslist file", () => {
+    it("should handle .browserslist file (no target detection)", () => {
       writeFile(".browserslist", `es2018`);
 
-      expect(detectTarget(tempDir)).toEqual({ target: "2018", source: ".browserslist" });
+      expect(detectTarget(tempDir)).toBeNull();
     });
   });
 
@@ -655,7 +661,7 @@ last 2 versions`,
       expect(detectOutputDir(tempDir)).toEqual({ outputDir: ".next/static", source: "package.json" });
     });
 
-    it("should handle package.json with browserslist as string", () => {
+    it("should handle package.json with browserslist as string (no target detection)", () => {
       writeFile(
         "package.json",
         JSON.stringify({
@@ -663,10 +669,10 @@ last 2 versions`,
         }),
       );
 
-      expect(detectTarget(tempDir)).toEqual({ target: "2019", source: "package.json" });
+      expect(detectTarget(tempDir)).toBeNull();
     });
 
-    it("should handle package.json with browserslist array containing non-strings", () => {
+    it("should handle package.json with browserslist array containing non-strings (no target detection)", () => {
       writeFile(
         "package.json",
         JSON.stringify({
@@ -674,7 +680,7 @@ last 2 versions`,
         }),
       );
 
-      expect(detectTarget(tempDir)).toEqual({ target: "2020", source: "package.json" });
+      expect(detectTarget(tempDir)).toBeNull();
     });
   });
 
@@ -711,6 +717,68 @@ last 2 versions`,
       );
 
       expect(detectTarget(tempDir)).toEqual({ target: "2020", source: "tsconfig.json" });
+    });
+  });
+
+  describe("browserslist detection", () => {
+    it("should detect browserslist from package.json", () => {
+      writeFile(
+        "package.json",
+        JSON.stringify({
+          browserslist: ["last 2 versions", "> 1%", "not dead"],
+        }),
+      );
+
+      const result = detectBrowserslist(tempDir);
+      expect(result).toEqual({
+        browserslist: ["last 2 versions", "> 1%", "not dead"],
+        source: "package.json",
+      });
+    });
+
+    it("should detect browserslist from .browserslistrc", () => {
+      writeFile(
+        ".browserslistrc",
+        `# Browsers that we support
+last 2 versions
+> 1%
+not dead`,
+      );
+
+      const result = detectBrowserslist(tempDir);
+      expect(result).toEqual({
+        browserslist: ["last 2 versions", "> 1%", "not dead"],
+        source: ".browserslistrc",
+      });
+    });
+
+    it("should detect browserslist from .babelrc", () => {
+      writeFile(
+        ".babelrc",
+        JSON.stringify({
+          presets: [
+            [
+              "@babel/preset-env",
+              {
+                targets: {
+                  browsers: ["last 2 versions", "> 1%", "not dead"],
+                },
+              },
+            ],
+          ],
+        }),
+      );
+
+      const result = detectBrowserslist(tempDir);
+      expect(result).toEqual({
+        browserslist: ["last 2 versions", "> 1%", "not dead"],
+        source: ".babelrc",
+      });
+    });
+
+    it("should return null when no browserslist found", () => {
+      const result = detectBrowserslist(tempDir);
+      expect(result).toBeNull();
     });
   });
 
