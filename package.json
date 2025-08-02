@@ -44,7 +44,6 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@actions/core": "^1.11.1",
     "@babel/code-frame": "^7.27.1",
     "chalk": "^5.4.1",
     "commander": "^14.0.0",
