@@ -5,7 +5,7 @@ import * as fs from "fs";
 import packageJson from "../package.json" with { type: "json" };
 import { checkCompatibility, formatViolationMessage } from "./lib/checkCompatiblity.js";
 import { getBrowserTargetsFromString } from "./lib/getBrowserTargets.js";
-import { detectProjectConfig, getConfigFileNames } from "./lib/detectTarget.js";
+import { detectProjectConfig, getConfigFileNames, getCurrentProjectType } from "./lib/detectTarget.js";
 
 import { setVerboseMode } from "./lib/globalState.js";
 
@@ -104,6 +104,10 @@ program.action(
       if (options.verbose) {
         console.log("🔍 Auto-detecting project configuration...");
         console.log(`📂 Searching in: ${process.cwd()}`);
+
+        // Detect and log project type
+        const projectType = getCurrentProjectType();
+        console.log(`🏗️  Project type: ${projectType}`);
         console.log("");
       }
 

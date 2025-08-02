@@ -3,12 +3,14 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 import { detectTarget, detectOutputDir, detectTargetAndOutput, detectBrowserslist } from "./detectTarget.js";
+import { resetGlobalState } from "./globalState.js";
 
 describe("detectTarget", () => {
   let tempDir: string;
 
   beforeEach(() => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "es-guard-test-"));
+    resetGlobalState();
   });
 
   afterEach(() => {
@@ -201,7 +203,7 @@ describe("detectTarget", () => {
         }),
       );
 
-      expect(detectOutputDir(tempDir)).toEqual({ outputDir: ".next/static", source: "package.json" });
+      expect(detectOutputDir(tempDir)).toEqual({ outputDir: ".next/static", source: "package.json (default)" });
     });
 
     it("should detect custom distDir from next.config.js", () => {
@@ -658,7 +660,7 @@ last 2 versions`,
         }),
       );
 
-      expect(detectOutputDir(tempDir)).toEqual({ outputDir: ".next/static", source: "package.json" });
+      expect(detectOutputDir(tempDir)).toEqual({ outputDir: ".next/static", source: "package.json (default)" });
     });
 
     it("should handle package.json with browserslist as string (no target detection)", () => {
@@ -779,6 +781,41 @@ not dead`,
     it("should return null when no browserslist found", () => {
       const result = detectBrowserslist(tempDir);
       expect(result).toBeNull();
+    });
+
+    it("should use Next.js default browserslist when no browserslist found but Next.js is detected", () => {
+      writeFile(
+        "package.json",
+        JSON.stringify({
+          dependencies: {
+            next: "^13.0.0",
+          },
+        }),
+      );
+
+      const result = detectBrowserslist(tempDir);
+      expect(result).toEqual({
+        browserslist: ["chrome 64", "edge 79", "firefox 67", "opera 51", "safari 12"],
+        source: "Next.js default",
+      });
+    });
+
+    it("should not use Next.js default browserslist when browserslist is already found", () => {
+      writeFile(
+        "package.json",
+        JSON.stringify({
+          dependencies: {
+            next: "^13.0.0",
+          },
+          browserslist: ["last 2 versions", "> 1%", "not dead"],
+        }),
+      );
+
+      const result = detectBrowserslist(tempDir);
+      expect(result).toEqual({
+        browserslist: ["last 2 versions", "> 1%", "not dead"],
+        source: "package.json",
+      });
     });
   });
 

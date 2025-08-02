@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
-import { verboseMode } from "./globalState.js";
+import { verboseMode, setProjectType, getProjectType, isProjectTypeDetected } from "./globalState.js";
+import { NEXTJS_DEFAULT_BROWSERSLIST, detectProjectType, getDefaultOutputDir } from "./defaults.js";
 
 // Shared utilities for ES version parsing and conversion
 
@@ -175,7 +176,9 @@ const isNextConfig = (
 type ParserResult = {
   target?: string;
   outputDir?: string;
+  outputSource?: string;
   browserslist?: string[];
+  browserslistSource?: string;
 };
 
 /**
@@ -222,6 +225,46 @@ const getParser = (filename: string) => {
  */
 export const getConfigFileNames = () => {
   return CONFIG_FILE_NAMES;
+};
+
+/**
+ * Detect and cache project type globally (lazy initialization)
+ */
+export const detectAndCacheProjectType = (cwd: string = process.cwd()): string | null => {
+  // Return cached result if already detected
+  if (isProjectTypeDetected()) {
+    return getProjectType() || null;
+  }
+
+  // Detect project type from package.json
+  const packageJsonPath = path.join(cwd, "package.json");
+  if (fs.existsSync(packageJsonPath)) {
+    try {
+      const pkg = readJsonFile(packageJsonPath);
+      if (isPackageJson(pkg)) {
+        const detectedType = detectProjectType(pkg.dependencies, pkg.devDependencies);
+        setProjectType(detectedType);
+
+        if (verboseMode) {
+          console.log(`🔍 Project type detected: ${detectedType}`);
+        }
+
+        return detectedType;
+      }
+    } catch (error) {
+      // Ignore errors when detecting project type
+      if (verboseMode) {
+        console.log(`   ⚠️  Error detecting project type: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+  }
+
+  // No project type detected
+  if (verboseMode) {
+    console.log(`🔍 No project type detected`);
+  }
+
+  return null;
 };
 
 /**
@@ -283,7 +326,7 @@ export const detectProjectConfig = (cwd: string = process.cwd()): DetectionResul
         // Update output directory if found and not already set
         if (detection.outputDir && !result.outputDir) {
           result.outputDir = detection.outputDir;
-          result.outputSource = filename;
+          result.outputSource = detection.outputSource || filename;
           if (verboseMode) {
             console.log(`      📁 Output directory: ${detection.outputDir}`);
           }
@@ -296,7 +339,7 @@ export const detectProjectConfig = (cwd: string = process.cwd()): DetectionResul
         // Update browserslist if found and not already set
         if (detection.browserslist && !result.browserslist) {
           result.browserslist = detection.browserslist;
-          result.browserslistSource = filename;
+          result.browserslistSource = detection.browserslistSource || filename;
           if (verboseMode) {
             console.log(
               `      🌐 Browserslist: ${detection.browserslist.join(", ")} (from ${result.browserslistSource})`,
@@ -327,6 +370,26 @@ export const detectProjectConfig = (cwd: string = process.cwd()): DetectionResul
       }
     } else if (verboseMode) {
       console.log(`❌ Not found: ${filename}`);
+    }
+  }
+
+  // If no output directory was found, use global project type to get default
+  // Only provide defaults if we have a package.json (indicating a real project)
+  if (!result.outputDir) {
+    const packageJsonPath = path.join(cwd, "package.json");
+    if (fs.existsSync(packageJsonPath)) {
+      const projectType = detectAndCacheProjectType(cwd);
+      if (projectType) {
+        const defaultOutputDir = getDefaultOutputDir(projectType);
+        if (defaultOutputDir) {
+          result.outputDir = defaultOutputDir;
+          result.outputSource = "package.json (default)";
+
+          if (verboseMode) {
+            console.log(`🔍 No output directory found, using default for ${projectType}: ${defaultOutputDir}`);
+          }
+        }
+      }
     }
   }
 
@@ -381,6 +444,13 @@ export const detectBrowserslist = (cwd: string = process.cwd()): { browserslist:
 };
 
 /**
+ * Get the current project type (detects if not already cached)
+ */
+export const getCurrentProjectType = (cwd: string = process.cwd()): string => {
+  return detectAndCacheProjectType(cwd) || "generic";
+};
+
+/**
  * Legacy function for backward compatibility - detects target and output directory
  */
 export const detectTargetAndOutput = (cwd: string = process.cwd()): DetectionResult => {
@@ -418,6 +488,9 @@ const parsePackageJson = (filePath: string): ParserResult => {
     result.browserslist = browserslist.filter((browser) => typeof browser === "string");
   }
 
+  // Use global project type detection (lazy initialization)
+  const projectType = detectAndCacheProjectType(path.dirname(filePath)) || "generic";
+
   // Check for output directory hints
   if (pkg.dist) {
     result.outputDir = pkg.dist;
@@ -425,9 +498,16 @@ const parsePackageJson = (filePath: string): ParserResult => {
     result.outputDir = pkg.build;
   } else if (pkg.main && pkg.main.startsWith("./dist/")) {
     result.outputDir = "dist";
-  } else if (pkg.dependencies?.next || pkg.devDependencies?.next) {
-    // Next.js apps default to .next directory
+  } else if (projectType === "nextjs") {
+    // Set default output directory for Next.js projects
     result.outputDir = ".next/static";
+    result.outputSource = "package.json (default)";
+  }
+
+  // If no browserslist was found, use default for detected project type
+  if (!result.browserslist && projectType === "nextjs") {
+    result.browserslist = [...NEXTJS_DEFAULT_BROWSERSLIST];
+    result.browserslistSource = "Next.js default";
   }
 
   return result;
