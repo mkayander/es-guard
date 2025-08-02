@@ -1,3 +1,10 @@
+# [1.10.0](https://github.com/mkayander/es-guard/compare/v1.9.0...v1.10.0) (2025-08-02)
+
+
+### Features
+
+* Enhance package.json and documentation for programmatic API ([6d18251](https://github.com/mkayander/es-guard/commit/6d182518d798306af19a23ac157394f975687949))
+
 # [1.9.0](https://github.com/mkayander/es-guard/compare/v1.8.0...v1.9.0) (2025-08-02)
 
 
