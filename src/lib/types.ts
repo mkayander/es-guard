@@ -17,3 +17,5 @@ export type Config = {
   target: string;
   browsers?: string;
 };
+
+export type ProjectType = "nextjs" | "vite" | "webpack" | "rollup" | "parcel" | "generic";

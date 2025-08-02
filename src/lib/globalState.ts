@@ -1,16 +1,18 @@
 // Global state management for CLI options and project configuration
 
+import type { ProjectType } from "./types.js";
+
 interface GlobalState {
   verbose: boolean;
   debug: boolean;
-  projectType?: string;
+  projectType?: ProjectType;
   projectTypeDetected: boolean;
 }
 
 // Static global state variables
 export let verboseMode = false;
 export let debugMode = false;
-export let projectType: string | undefined = undefined;
+export let projectType: ProjectType | undefined = undefined;
 export let projectTypeDetected = false;
 
 /**
@@ -62,7 +64,7 @@ export const resetGlobalState = () => {
 /**
  * Set the detected project type globally
  */
-export const setProjectType = (detectedType: string) => {
+export const setProjectType = (detectedType: ProjectType) => {
   projectType = detectedType;
   projectTypeDetected = true;
 };
@@ -70,7 +72,7 @@ export const setProjectType = (detectedType: string) => {
 /**
  * Get the detected project type (lazy detection if not already done)
  */
-export const getProjectType = (): string | undefined => {
+export const getProjectType = (): ProjectType | undefined => {
   return projectType;
 };
 

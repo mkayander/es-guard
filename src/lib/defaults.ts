@@ -2,6 +2,8 @@
  * Default configurations for different project types
  */
 
+import type { ProjectType } from "./types.js";
+
 /**
  * Next.js default browserslist configuration
  * Source: https://nextjs.org/docs/basic-features/supported-browsers-features
@@ -11,33 +13,39 @@ export const NEXTJS_DEFAULT_BROWSERSLIST = ["chrome 64", "edge 79", "firefox 67"
 /**
  * Default output directories for different project types
  */
-export const DEFAULT_OUTPUT_DIRS = {
-  NEXTJS: ".next/static",
-  VITE: "dist",
-  WEBPACK: "dist",
-  ROLLUP: "dist",
-  PARCEL: "dist",
-  GENERIC: "dist",
-} as const;
+export const DEFAULT_OUTPUT_DIRS: Record<ProjectType, string> = {
+  nextjs: ".next/static",
+  vite: "dist",
+  webpack: "dist",
+  rollup: "dist",
+  parcel: "dist",
+  generic: "dist",
+};
 
 /**
  * Project type detection helpers
  */
-export const PROJECT_TYPES = {
-  NEXTJS: "nextjs",
-  VITE: "vite",
-  WEBPACK: "webpack",
-  ROLLUP: "rollup",
-  PARCEL: "parcel",
-  GENERIC: "generic",
-} as const;
+export const PROJECT_TYPES: Record<ProjectType, ProjectType> = {
+  nextjs: "nextjs",
+  vite: "vite",
+  webpack: "webpack",
+  rollup: "rollup",
+  parcel: "parcel",
+  generic: "generic",
+};
+
+export const ProjectTypeKeys = new Set(Object.keys(PROJECT_TYPES) as ProjectType[]);
+
+export const isProjectType = (projectType: string): projectType is ProjectType => {
+  return ProjectTypeKeys.has(projectType as ProjectType);
+};
 
 /**
  * Get default browserslist for a project type
  */
 export function getDefaultBrowserslist(projectType: string): string[] | null {
   switch (projectType) {
-    case PROJECT_TYPES.NEXTJS:
+    case PROJECT_TYPES.nextjs:
       return [...NEXTJS_DEFAULT_BROWSERSLIST];
     // Add more project types here as needed
     default:
@@ -48,21 +56,12 @@ export function getDefaultBrowserslist(projectType: string): string[] | null {
 /**
  * Get default output directory for a project type
  */
-export function getDefaultOutputDir(projectType: string): string | null {
-  switch (projectType) {
-    case PROJECT_TYPES.NEXTJS:
-      return DEFAULT_OUTPUT_DIRS.NEXTJS;
-    case PROJECT_TYPES.VITE:
-      return DEFAULT_OUTPUT_DIRS.VITE;
-    case PROJECT_TYPES.WEBPACK:
-      return DEFAULT_OUTPUT_DIRS.WEBPACK;
-    case PROJECT_TYPES.ROLLUP:
-      return DEFAULT_OUTPUT_DIRS.ROLLUP;
-    case PROJECT_TYPES.PARCEL:
-      return DEFAULT_OUTPUT_DIRS.PARCEL;
-    default:
-      return DEFAULT_OUTPUT_DIRS.GENERIC;
+export function getDefaultOutputDir(projectType: string): string {
+  if (isProjectType(projectType)) {
+    return DEFAULT_OUTPUT_DIRS[projectType];
   }
+
+  return DEFAULT_OUTPUT_DIRS.generic;
 }
 
 /**
@@ -71,24 +70,24 @@ export function getDefaultOutputDir(projectType: string): string | null {
 export function detectProjectType(
   dependencies: Record<string, string> = {},
   devDependencies: Record<string, string> = {},
-): string {
+): ProjectType {
   const allDeps = { ...dependencies, ...devDependencies };
 
   if (allDeps.next) {
-    return PROJECT_TYPES.NEXTJS;
+    return PROJECT_TYPES.nextjs;
   }
   if (allDeps.vite) {
-    return PROJECT_TYPES.VITE;
+    return PROJECT_TYPES.vite;
   }
   if (allDeps.webpack) {
-    return PROJECT_TYPES.WEBPACK;
+    return PROJECT_TYPES.webpack;
   }
   if (allDeps.rollup) {
-    return PROJECT_TYPES.ROLLUP;
+    return PROJECT_TYPES.rollup;
   }
   if (allDeps.parcel) {
-    return PROJECT_TYPES.PARCEL;
+    return PROJECT_TYPES.parcel;
   }
 
-  return PROJECT_TYPES.GENERIC;
+  return PROJECT_TYPES.generic;
 }

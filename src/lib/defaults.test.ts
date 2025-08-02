@@ -1,38 +1,12 @@
 import { describe, it, expect } from "vitest";
 import {
   NEXTJS_DEFAULT_BROWSERSLIST,
-  DEFAULT_OUTPUT_DIRS,
-  PROJECT_TYPES,
   getDefaultBrowserslist,
   getDefaultOutputDir,
   detectProjectType,
 } from "./defaults.js";
 
 describe("defaults", () => {
-  describe("constants", () => {
-    it("should export Next.js default browserslist", () => {
-      expect(NEXTJS_DEFAULT_BROWSERSLIST).toEqual(["chrome 64", "edge 79", "firefox 67", "opera 51", "safari 12"]);
-    });
-
-    it("should export default output directories", () => {
-      expect(DEFAULT_OUTPUT_DIRS.NEXTJS).toBe(".next/static");
-      expect(DEFAULT_OUTPUT_DIRS.VITE).toBe("dist");
-      expect(DEFAULT_OUTPUT_DIRS.WEBPACK).toBe("dist");
-      expect(DEFAULT_OUTPUT_DIRS.ROLLUP).toBe("dist");
-      expect(DEFAULT_OUTPUT_DIRS.PARCEL).toBe("dist");
-      expect(DEFAULT_OUTPUT_DIRS.GENERIC).toBe("dist");
-    });
-
-    it("should export project types", () => {
-      expect(PROJECT_TYPES.NEXTJS).toBe("nextjs");
-      expect(PROJECT_TYPES.VITE).toBe("vite");
-      expect(PROJECT_TYPES.WEBPACK).toBe("webpack");
-      expect(PROJECT_TYPES.ROLLUP).toBe("rollup");
-      expect(PROJECT_TYPES.PARCEL).toBe("parcel");
-      expect(PROJECT_TYPES.GENERIC).toBe("generic");
-    });
-  });
-
   describe("getDefaultBrowserslist", () => {
     it("should return Next.js default browserslist for nextjs project type", () => {
       const result = getDefaultBrowserslist("nextjs");

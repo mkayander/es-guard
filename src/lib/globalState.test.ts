@@ -11,7 +11,7 @@ import {
   getProjectType,
   isProjectTypeDetected,
 } from "./globalState.js";
-import { detectAndCacheProjectType, getCurrentProjectType } from "./detectTarget.js";
+import { detectAndCacheProjectType, getCurrentProjectType } from "./projectType.js";
 
 describe("globalState", () => {
   beforeEach(() => {

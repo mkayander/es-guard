@@ -1,7 +1,19 @@
 import * as fs from "fs";
 import * as path from "path";
-import { verboseMode, setProjectType, getProjectType, isProjectTypeDetected } from "./globalState.js";
-import { NEXTJS_DEFAULT_BROWSERSLIST, detectProjectType, getDefaultOutputDir } from "./defaults.js";
+import { verboseMode } from "./globalState.js";
+import { NEXTJS_DEFAULT_BROWSERSLIST, getDefaultOutputDir } from "./defaults.js";
+import { detectAndCacheProjectType, getCurrentProjectType } from "./projectType.js";
+import {
+  readJsonFile,
+  readTextFile,
+  evaluateJsFile,
+  isPackageJson,
+  isTsConfig,
+  isBabelRc,
+  isViteConfig,
+  isWebpackConfig,
+  isNextConfig,
+} from "./utils.js";
 
 // Shared utilities for ES version parsing and conversion
 
@@ -55,119 +67,6 @@ const TARGET_MAP: Record<string, string> = {
   es2015: "2015",
   es6: "2015",
   es5: "2009",
-};
-
-/**
- * Helper to read and parse JSON file safely
- */
-const readJsonFile = (filePath: string): unknown => {
-  const content = fs.readFileSync(filePath, "utf-8");
-  return JSON.parse(content);
-};
-
-/**
- * Helper to read text file safely
- */
-const readTextFile = (filePath: string): string => {
-  return fs.readFileSync(filePath, "utf-8");
-};
-
-/**
- * Helper to safely evaluate JavaScript files (for config files)
- */
-const evaluateJsFile = (filePath: string): unknown => {
-  const content = readTextFile(filePath);
-  // Create a safe evaluation context
-  const module = { exports: {} };
-  const require = (id: string) => {
-    if (id === "path") return path;
-    if (id === "fs") return fs;
-    throw new Error(`Cannot require '${id}' in config evaluation`);
-  };
-
-  try {
-    // Use Function constructor to create a safe evaluation environment
-    const fn = new Function("module", "exports", "require", "path", "fs", "__dirname", content);
-    fn(module, module.exports, require, path, fs, path.dirname(filePath));
-    return module.exports;
-  } catch (error) {
-    console.warn(`Error evaluating ${filePath}:`, error);
-    return null;
-  }
-};
-
-/**
- * Type guard for package.json structure
- */
-const isPackageJson = (
-  obj: unknown,
-): obj is {
-  browserslist?: string | string[];
-  main?: string;
-  dist?: string;
-  build?: string;
-  dependencies?: Record<string, string>;
-  devDependencies?: Record<string, string>;
-} => {
-  return typeof obj === "object" && obj !== null;
-};
-
-/**
- * Type guard for tsconfig.json structure
- */
-const isTsConfig = (
-  obj: unknown,
-): obj is {
-  compilerOptions?: {
-    target?: string;
-    outDir?: string;
-  };
-} => {
-  return typeof obj === "object" && obj !== null && "compilerOptions" in obj;
-};
-
-/**
- * Type guard for .babelrc structure
- */
-const isBabelRc = (obj: unknown): obj is { presets?: Array<[string, { targets?: { browsers?: string[] } }]> } => {
-  return typeof obj === "object" && obj !== null && "presets" in obj;
-};
-
-/**
- * Type guard for vite config structure
- */
-const isViteConfig = (
-  obj: unknown,
-): obj is {
-  build?: {
-    outDir?: string;
-  };
-} => {
-  return typeof obj === "object" && obj !== null;
-};
-
-/**
- * Type guard for webpack config structure
- */
-const isWebpackConfig = (
-  obj: unknown,
-): obj is {
-  output?: {
-    path?: string;
-  };
-} => {
-  return typeof obj === "object" && obj !== null;
-};
-
-/**
- * Type guard for next.js config structure
- */
-const isNextConfig = (
-  obj: unknown,
-): obj is {
-  distDir?: string;
-} => {
-  return typeof obj === "object" && obj !== null;
 };
 
 /**
@@ -225,46 +124,6 @@ const getParser = (filename: string) => {
  */
 export const getConfigFileNames = () => {
   return CONFIG_FILE_NAMES;
-};
-
-/**
- * Detect and cache project type globally (lazy initialization)
- */
-export const detectAndCacheProjectType = (cwd: string = process.cwd()): string | null => {
-  // Return cached result if already detected
-  if (isProjectTypeDetected()) {
-    return getProjectType() || null;
-  }
-
-  // Detect project type from package.json
-  const packageJsonPath = path.join(cwd, "package.json");
-  if (fs.existsSync(packageJsonPath)) {
-    try {
-      const pkg = readJsonFile(packageJsonPath);
-      if (isPackageJson(pkg)) {
-        const detectedType = detectProjectType(pkg.dependencies, pkg.devDependencies);
-        setProjectType(detectedType);
-
-        if (verboseMode) {
-          console.log(`🔍 Project type detected: ${detectedType}`);
-        }
-
-        return detectedType;
-      }
-    } catch (error) {
-      // Ignore errors when detecting project type
-      if (verboseMode) {
-        console.log(`   ⚠️  Error detecting project type: ${error instanceof Error ? error.message : String(error)}`);
-      }
-    }
-  }
-
-  // No project type detected
-  if (verboseMode) {
-    console.log(`🔍 No project type detected`);
-  }
-
-  return null;
 };
 
 /**
@@ -373,26 +232,6 @@ export const detectProjectConfig = (cwd: string = process.cwd()): DetectionResul
     }
   }
 
-  // If no output directory was found, use global project type to get default
-  // Only provide defaults if we have a package.json (indicating a real project)
-  if (!result.outputDir) {
-    const packageJsonPath = path.join(cwd, "package.json");
-    if (fs.existsSync(packageJsonPath)) {
-      const projectType = detectAndCacheProjectType(cwd);
-      if (projectType) {
-        const defaultOutputDir = getDefaultOutputDir(projectType);
-        if (defaultOutputDir) {
-          result.outputDir = defaultOutputDir;
-          result.outputSource = "package.json (default)";
-
-          if (verboseMode) {
-            console.log(`🔍 No output directory found, using default for ${projectType}: ${defaultOutputDir}`);
-          }
-        }
-      }
-    }
-  }
-
   if (verboseMode) {
     console.log("");
     console.log("📊 Detection Results:");
@@ -444,13 +283,6 @@ export const detectBrowserslist = (cwd: string = process.cwd()): { browserslist:
 };
 
 /**
- * Get the current project type (detects if not already cached)
- */
-export const getCurrentProjectType = (cwd: string = process.cwd()): string => {
-  return detectAndCacheProjectType(cwd) || "generic";
-};
-
-/**
  * Legacy function for backward compatibility - detects target and output directory
  */
 export const detectTargetAndOutput = (cwd: string = process.cwd()): DetectionResult => {
@@ -489,7 +321,7 @@ const parsePackageJson = (filePath: string): ParserResult => {
   }
 
   // Use global project type detection (lazy initialization)
-  const projectType = detectAndCacheProjectType(path.dirname(filePath)) || "generic";
+  const projectType = getCurrentProjectType(path.dirname(filePath));
 
   // Check for output directory hints
   if (pkg.dist) {

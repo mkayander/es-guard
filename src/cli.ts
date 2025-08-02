@@ -5,7 +5,8 @@ import * as fs from "fs";
 import packageJson from "../package.json" with { type: "json" };
 import { checkCompatibility, formatViolationMessage } from "./lib/checkCompatiblity.js";
 import { getBrowserTargetsFromString } from "./lib/getBrowserTargets.js";
-import { detectProjectConfig, getConfigFileNames, getCurrentProjectType } from "./lib/detectTarget.js";
+import { detectProjectConfig, getConfigFileNames } from "./lib/detectTarget.js";
+import { getCurrentProjectType } from "./lib/projectType.js";
 
 import { setVerboseMode } from "./lib/globalState.js";
 

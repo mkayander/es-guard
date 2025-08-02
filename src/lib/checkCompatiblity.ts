@@ -1,7 +1,8 @@
-import { ESLint, Linter } from "eslint";
+import type { Linter } from "eslint";
+import { ESLint } from "eslint";
 import chalk from "chalk";
 import { createESLintConfig } from "./createESLintConfig.js";
-import { Config, Violation, SourceMappedMessage } from "./types.js";
+import type { Config, Violation, SourceMappedMessage } from "./types.js";
 import { walkDir } from "./walkDir.js";
 import * as fs from "fs";
 import * as path from "path";
