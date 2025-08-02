@@ -4,7 +4,6 @@ import {
   detectProjectConfig,
   getBrowserTargetsFromString,
   validateConfig,
-  walkDir,
   getCurrentProjectType,
   setVerboseMode,
 } from "es-guard";
@@ -87,13 +86,8 @@ function utilityExamples() {
   const projectType = getCurrentProjectType();
   console.log("Project type:", projectType);
 
-  // Walk directory
-  try {
-    const files = walkDir("dist");
-    console.log(`Found ${files.length} JavaScript files in dist/`);
-  } catch (error) {
-    console.log("No dist directory found");
-  }
+  // Note: Directory walking is handled automatically by checkCompatibility
+  console.log("Directory traversal is handled automatically by checkCompatibility");
 }
 
 // Example 5: Verbose mode

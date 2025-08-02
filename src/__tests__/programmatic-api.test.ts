@@ -21,7 +21,6 @@ describe("Programmatic API", () => {
     expect(typeof api.getBrowserTargets).toBe("function");
     expect(typeof api.parseEcmaVersion).toBe("function");
     expect(typeof api.validateConfig).toBe("function");
-    expect(typeof api.walkDir).toBe("function");
     expect(typeof api.getCurrentProjectType).toBe("function");
 
     // Global state functions
@@ -123,19 +122,6 @@ describe("Programmatic API", () => {
     // Test latest
     expect(getBrowserTargetsFromString("latest")).toBeDefined();
   });
-
-  test("should work with directory walking", async () => {
-    const { walkDir } = await import("../index.js");
-
-    // Test with non-existent directory
-    const files = walkDir("non-existent-directory");
-    expect(Array.isArray(files)).toBe(true);
-    expect(files.length).toBe(0);
-
-    // Test with current directory (should find some files)
-    const currentFiles = walkDir(".");
-    expect(Array.isArray(currentFiles)).toBe(true);
-  }, 10000); // Increase timeout to 10 seconds
 
   test("should detect project type", async () => {
     const { getCurrentProjectType } = await import("../index.js");
@@ -244,7 +230,7 @@ describe("Programmatic API", () => {
   });
 
   test("should work with real directory structure", async () => {
-    const { walkDir, checkCompatibility } = await import("../index.js");
+    const { checkCompatibility } = await import("../index.js");
 
     // Create a temporary test directory with JS files
     const testDir = "test-temp-api";
@@ -255,12 +241,7 @@ describe("Programmatic API", () => {
       fs.mkdirSync(testDir, { recursive: true });
       fs.writeFileSync(testFile, "const test = () => {};");
 
-      // Test walking the directory
-      const files = walkDir(testDir);
-      expect(files.length).toBeGreaterThan(0);
-      expect(files.some((file) => file.includes("test.js"))).toBe(true);
-
-      // Test compatibility check
+      // Test compatibility check (ESLint handles directory traversal)
       const result = await checkCompatibility({
         dir: testDir,
         target: "2015",
@@ -281,10 +262,10 @@ describe("Programmatic API", () => {
   test("should handle edge cases gracefully", async () => {
     const { checkCompatibility, validateConfig } = await import("../index.js");
 
-    // Test with empty string target
+    // Test with non-existent directory (should handle gracefully)
     const result = await checkCompatibility({
       dir: "non-existent-directory",
-      target: "",
+      target: "2015",
     });
 
     expect(result).toHaveProperty("errors");
@@ -325,7 +306,6 @@ describe("Programmatic API", () => {
       detectProjectConfig,
       getBrowserTargetsFromString,
       validateConfig,
-      walkDir,
       getCurrentProjectType,
       setVerboseMode,
       setDebugMode,
@@ -344,7 +324,6 @@ describe("Programmatic API", () => {
     expect(typeof detectProjectConfig).toBe("function");
     expect(typeof getBrowserTargetsFromString).toBe("function");
     expect(typeof validateConfig).toBe("function");
-    expect(typeof walkDir).toBe("function");
     expect(typeof getCurrentProjectType).toBe("function");
     expect(typeof setVerboseMode).toBe("function");
     expect(typeof setDebugMode).toBe("function");

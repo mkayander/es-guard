@@ -3,7 +3,6 @@ export { checkCompatibility, formatViolationMessage } from "./lib/checkCompatibl
 export { detectProjectConfig, detectTarget, detectOutputDir, detectBrowserslist } from "./lib/detectTarget.js";
 export { getBrowserTargetsFromString, getBrowserTargets, parseEcmaVersion } from "./lib/getBrowserTargets.js";
 export { validateConfig } from "./lib/validateConfig.js";
-export { walkDir } from "./lib/walkDir.js";
 export { getCurrentProjectType } from "./lib/projectType.js";
 export { setVerboseMode, setDebugMode, getGlobalState, setGlobalState } from "./lib/globalState.js";
 

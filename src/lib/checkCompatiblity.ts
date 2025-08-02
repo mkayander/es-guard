@@ -3,7 +3,6 @@ import { ESLint } from "eslint";
 import chalk from "chalk";
 import { createESLintConfig } from "./createESLintConfig.js";
 import type { Config, Violation, SourceMappedMessage } from "./types.js";
-import { walkDir } from "./walkDir.js";
 import * as fs from "fs";
 import * as path from "path";
 import { SourceMapConsumer } from "source-map";
@@ -90,13 +89,6 @@ async function getOriginalSourceMap(
 }
 
 export const checkCompatibility = async (config: Config): Promise<CompatibilityResult> => {
-  const jsFiles = walkDir(config.dir);
-
-  if (jsFiles.length === 0) {
-    console.log(`No JavaScript files found in directory: ${config.dir}`);
-    return { errors: [], warnings: [] };
-  }
-
   // Set BROWSERSLIST env variable to override Browserslist file detection
   const originalBrowserslistEnv = process.env.BROWSERSLIST;
   if (config.browsers) {
@@ -107,94 +99,95 @@ export const checkCompatibility = async (config: Config): Promise<CompatibilityR
   const errors: Violation[] = [];
   const warnings: Violation[] = [];
 
-  for (const file of jsFiles) {
-    try {
-      const results = await eslint.lintFiles([file]);
-      if (Array.isArray(results)) {
-        for (const result of results) {
-          const errorMessages = result.messages.filter((m) => m.severity === 2);
-          const warningMessages = result.messages.filter((m) => m.severity === 1);
+  try {
+    // Let ESLint handle directory traversal directly
+    const results = await eslint.lintFiles([config.dir]);
 
-          // Try to remap error/warning locations using sourcemap
-          let sourceMappedErrors: SourceMappedMessage[] | undefined = undefined;
-          let sourceMappedWarnings: SourceMappedMessage[] | undefined = undefined;
-          let sourceMap: SourceMapConsumer | null = null;
-          let originalFile: string | undefined = undefined;
-
-          if (errorMessages.length > 0 || warningMessages.length > 0) {
-            const sourceMapResult = await getOriginalSourceMap(file);
-            if (sourceMapResult) {
-              sourceMap = sourceMapResult.consumer;
-              originalFile = sourceMapResult.originalFile;
-            }
-          }
-
-          if (sourceMap) {
-            if (errorMessages.length > 0) {
-              sourceMappedErrors = errorMessages.map((msg) => {
-                if (msg.line != null && msg.column != null) {
-                  const orig = sourceMap!.originalPositionFor({
-                    line: msg.line,
-                    column: msg.column,
-                  });
-                  return {
-                    ...msg,
-                    originalFile: orig.source || originalFile || undefined,
-                    originalLine: orig.line || undefined,
-                    originalColumn: orig.column || undefined,
-                  };
-                }
-                return msg;
-              });
-            }
-            if (warningMessages.length > 0) {
-              sourceMappedWarnings = warningMessages.map((msg) => {
-                if (msg.line != null && msg.column != null) {
-                  const orig = sourceMap!.originalPositionFor({
-                    line: msg.line,
-                    column: msg.column,
-                  });
-                  return {
-                    ...msg,
-                    originalFile: orig.source || originalFile || undefined,
-                    originalLine: orig.line || undefined,
-                    originalColumn: orig.column || undefined,
-                  };
-                }
-                return msg;
-              });
-            }
-            if (sourceMap.destroy) sourceMap.destroy();
-          }
-
-          if (errorMessages.length > 0) {
-            errors.push({
-              file: result.filePath,
-              messages: errorMessages,
-              sourceMappedMessages: sourceMappedErrors,
-            });
-          }
-          if (warningMessages.length > 0) {
-            warnings.push({
-              file: result.filePath,
-              messages: warningMessages,
-              sourceMappedMessages: sourceMappedWarnings,
-            });
-          }
-        }
-      } else {
-        console.warn(`Warning: ESLint did not return an array for file ${file}.`, results);
-      }
-    } catch (error) {
-      console.warn(`Warning: Could not lint file ${file}:`, error);
+    if (results.length === 0) {
+      console.log(`No JavaScript files found in directory: ${config.dir}`);
+      return { errors: [], warnings: [] };
     }
-  }
 
-  // Restore original BROWSERSLIST env variable
-  if (originalBrowserslistEnv !== undefined) {
-    process.env.BROWSERSLIST = originalBrowserslistEnv;
-  } else {
-    delete process.env.BROWSERSLIST;
+    for (const result of results) {
+      const errorMessages = result.messages.filter((m) => m.severity === 2);
+      const warningMessages = result.messages.filter((m) => m.severity === 1);
+
+      // Try to remap error/warning locations using sourcemap
+      let sourceMappedErrors: SourceMappedMessage[] | undefined = undefined;
+      let sourceMappedWarnings: SourceMappedMessage[] | undefined = undefined;
+      let sourceMap: SourceMapConsumer | null = null;
+      let originalFile: string | undefined = undefined;
+
+      if (errorMessages.length > 0 || warningMessages.length > 0) {
+        const sourceMapResult = await getOriginalSourceMap(result.filePath);
+        if (sourceMapResult) {
+          sourceMap = sourceMapResult.consumer;
+          originalFile = sourceMapResult.originalFile;
+        }
+      }
+
+      if (sourceMap) {
+        if (errorMessages.length > 0) {
+          sourceMappedErrors = errorMessages.map((msg) => {
+            if (msg.line != null && msg.column != null) {
+              const orig = sourceMap!.originalPositionFor({
+                line: msg.line,
+                column: msg.column,
+              });
+              return {
+                ...msg,
+                originalFile: orig.source || originalFile || undefined,
+                originalLine: orig.line || undefined,
+                originalColumn: orig.column || undefined,
+              };
+            }
+            return msg;
+          });
+        }
+        if (warningMessages.length > 0) {
+          sourceMappedWarnings = warningMessages.map((msg) => {
+            if (msg.line != null && msg.column != null) {
+              const orig = sourceMap!.originalPositionFor({
+                line: msg.line,
+                column: msg.column,
+              });
+              return {
+                ...msg,
+                originalFile: orig.source || originalFile || undefined,
+                originalLine: orig.line || undefined,
+                originalColumn: orig.column || undefined,
+              };
+            }
+            return msg;
+          });
+        }
+        if (sourceMap.destroy) sourceMap.destroy();
+      }
+
+      if (errorMessages.length > 0) {
+        errors.push({
+          file: result.filePath,
+          messages: errorMessages,
+          sourceMappedMessages: sourceMappedErrors,
+        });
+      }
+      if (warningMessages.length > 0) {
+        warnings.push({
+          file: result.filePath,
+          messages: warningMessages,
+          sourceMappedMessages: sourceMappedWarnings,
+        });
+      }
+    }
+  } catch (error) {
+    console.warn(`Warning: Could not lint directory ${config.dir}:`, error);
+  } finally {
+    // Restore original BROWSERSLIST env variable
+    if (originalBrowserslistEnv !== undefined) {
+      process.env.BROWSERSLIST = originalBrowserslistEnv;
+    } else {
+      delete process.env.BROWSERSLIST;
+    }
   }
 
   return { errors, warnings };

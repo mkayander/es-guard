@@ -101,11 +101,9 @@ describe("checkCompatibility", () => {
 
     const result = await checkCompatibility(config);
 
-    // Should process 3 JavaScript files (even if no violations found)
-    expect(mockLintFiles).toHaveBeenCalledTimes(3);
-    expect(mockLintFiles).toHaveBeenCalledWith([testFile1]);
-    expect(mockLintFiles).toHaveBeenCalledWith([testFile2]);
-    expect(mockLintFiles).toHaveBeenCalledWith([testFile3]);
+    // Should process the directory directly (ESLint handles file discovery)
+    expect(mockLintFiles).toHaveBeenCalledTimes(1);
+    expect(mockLintFiles).toHaveBeenCalledWith([testDir]);
     expect(result).toEqual({ errors: [], warnings: [] });
   });
 
@@ -139,9 +137,9 @@ describe("checkCompatibility", () => {
 
     const result = await checkCompatibility(config);
 
-    // Should only process the .js file (ignore .ts, .json, .txt)
+    // Should process the directory directly (ESLint handles file filtering)
     expect(mockLintFiles).toHaveBeenCalledTimes(1);
-    expect(mockLintFiles).toHaveBeenCalledWith([jsFile]);
+    expect(mockLintFiles).toHaveBeenCalledWith([testDir]);
     expect(result).toEqual({ errors: [], warnings: [] });
   });
 

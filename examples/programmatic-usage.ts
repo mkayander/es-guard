@@ -4,7 +4,6 @@ import {
   detectProjectConfig,
   getBrowserTargetsFromString,
   validateConfig,
-  walkDir,
   getCurrentProjectType,
   setVerboseMode,
   type Config,
@@ -94,13 +93,8 @@ function utilityExamples(): void {
   const projectType = getCurrentProjectType();
   console.log("Project type:", projectType);
 
-  // Walk directory
-  try {
-    const files: string[] = walkDir("dist");
-    console.log(`Found ${files.length} JavaScript files in dist/`);
-  } catch (error) {
-    console.log("No dist directory found");
-  }
+  // Note: Directory walking is handled automatically by checkCompatibility
+  console.log("Directory traversal is handled automatically by checkCompatibility");
 }
 
 // Example 5: Verbose mode with proper error handling
