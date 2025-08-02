@@ -1,3 +1,16 @@
+# [1.8.0](https://github.com/mkayander/es-guard/compare/v1.7.0...v1.8.0) (2025-08-02)
+
+
+### Bug Fixes
+
+* Update ESLint rules for stricter type checks and improve type imports ([4dd5a71](https://github.com/mkayander/es-guard/commit/4dd5a71ba21f7869abba882f4bcff0a15cd2b2b4))
+
+
+### Features
+
+* Enhance project type detection and default configurations ([39ce323](https://github.com/mkayander/es-guard/commit/39ce323480427aaf1aae8eeee1a79ebb0907e9a9))
+* Restructure project type detection and configuration handling ([2cd7f69](https://github.com/mkayander/es-guard/commit/2cd7f69b98109e54bc230e87799ed8b3732051ca))
+
 # [1.7.0](https://github.com/mkayander/es-guard/compare/v1.6.0...v1.7.0) (2025-08-02)
 
 
