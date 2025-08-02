@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/mkayander/es-guard/compare/v1.5.0...v1.6.0) (2025-08-02)
+
+
+### Features
+
+* Add alias for CLI command in package.json ([5b77c73](https://github.com/mkayander/es-guard/commit/5b77c734a7ee68e8bc0b7f1983f8a4fd7e11ef89))
+
 # [1.5.0](https://github.com/mkayander/es-guard/compare/v1.4.0...v1.5.0) (2025-07-08)
 
 
