@@ -32,6 +32,7 @@ program
     "Browser targets for compatibility checking (optional: auto-determined from target)",
   )
   .option("-v, --verbose", "Enable verbose output showing detailed detection process and configuration information")
+  .option("--skip", "Do not exit with error code when compatibility errors are found")
   .addHelpText(
     "after",
     `
@@ -44,6 +45,7 @@ Examples:
   es-guard -t latest build           # Check 'build' directory with latest ES (auto-determined browsers)
   es-guard --target 2017 --browsers "> 0.5%, last 2 versions" dist
   es-guard --verbose                 # Auto-detect with detailed detection information
+  es-guard --skip                    # Auto-detect and continue even if compatibility errors are found
 
 Auto-detection searches for ES target in:
   - package.json (browserslist field)
@@ -67,7 +69,7 @@ Browser targets use Browserslist format:
 
 Exit codes:
   0 - No compatibility issues found
-  1 - Compatibility issues found or error occurred
+  1 - Compatibility issues found or error occurred (unless --skip is used)
 `,
   );
 
@@ -87,183 +89,193 @@ program.hook("preAction", (thisCommand) => {
   }
 });
 
+interface CliOptions {
+  target?: string;
+  browsers?: string;
+  verbose?: boolean;
+  skip?: boolean;
+}
+
 // Main action
-program.action(
-  async (directory: string | undefined, options: { target?: string; browsers?: string; verbose?: boolean }) => {
-    try {
-      // Set global verbose mode
-      setVerboseMode(options.verbose || false);
+program.action(async (directory: string | undefined, options: CliOptions) => {
+  try {
+    // Set global verbose mode
+    setVerboseMode(options.verbose || false);
 
-      // Auto-detect configuration if not specified
-      let scanDirectory: string;
-      let outputDirSource: string;
-      let target: string | undefined;
-      let targetSource: string;
-      let browserTargets: string;
-      let browserslistSource: string;
+    // Auto-detect configuration if not specified
+    let scanDirectory: string;
+    let outputDirSource: string;
+    let target: string | undefined;
+    let targetSource: string;
+    let browserTargets: string;
+    let browserslistSource: string;
 
-      if (options.verbose) {
-        console.log("🔍 Auto-detecting project configuration...");
-        console.log(`📂 Searching in: ${process.cwd()}`);
+    if (options.verbose) {
+      console.log("🔍 Auto-detecting project configuration...");
+      console.log(`📂 Searching in: ${process.cwd()}`);
 
-        // Detect and log project type
-        const projectType = getCurrentProjectType();
-        console.log(`🏗️  Project type: ${projectType}`);
-        console.log("");
-      }
-
-      // Use unified detection to get all configuration at once
-      const detectedConfig = detectProjectConfig(process.cwd());
-
-      // Handle directory detection
-      if (!directory) {
-        if (detectedConfig.outputDir) {
-          scanDirectory = detectedConfig.outputDir;
-          outputDirSource = `auto-detected from ${detectedConfig.outputSource}`;
-
-          if (options.verbose) {
-            console.log(`✅ Found output directory: ${scanDirectory} in ${detectedConfig.outputSource}`);
-          }
-        } else {
-          if (options.verbose) {
-            console.log("❌ No output directory configuration found, using default 'dist'");
-          }
-          // Use "dist" as fallback when auto-detection fails
-          scanDirectory = "dist";
-          outputDirSource = "default fallback";
-        }
-      } else {
-        scanDirectory = directory;
-        outputDirSource = "specified";
-      }
-
-      // Validate directory exists
-      if (!fs.existsSync(scanDirectory)) {
-        console.error(`Error: Directory "${scanDirectory}" does not exist`);
-        console.error(`Output directory source: ${outputDirSource}`);
-        process.exit(1);
-      }
-
-      const stat = fs.statSync(scanDirectory);
-      if (!stat.isDirectory()) {
-        console.error(`Error: "${scanDirectory}" is not a directory`);
-        process.exit(1);
-      }
-
-      // Handle target detection
-      if (options.target) {
-        target = options.target;
-        targetSource = "specified";
-      } else if (detectedConfig.target) {
-        target = detectedConfig.target;
-        targetSource = `auto-detected from ${detectedConfig.targetSource}`;
-      } else {
-        if (options.verbose) {
-          console.log("❌ No valid configuration files found for target detection");
-          console.log("📋 Searched for:");
-          const configFileNames = getConfigFileNames();
-          configFileNames.forEach((filename, index) => {
-            console.log(`   ${index + 1}. ${filename}`);
-          });
-          console.log("");
-        }
-
-        console.error("Error: No target specified and could not auto-detect from project configuration files.");
-        console.error("Please specify a target with --target or ensure your project has a valid configuration file.");
-        process.exit(1);
-      }
-
-      // Handle browser targets detection
-      if (options.browsers) {
-        browserTargets = options.browsers;
-        browserslistSource = "specified";
-        if (options.verbose) {
-          console.log(`🌐 Using specified browser targets: ${browserTargets}`);
-        }
-      } else if (detectedConfig.browserslist) {
-        // Use the detected browserslist
-        browserTargets = detectedConfig.browserslist.join(", ");
-        browserslistSource = `auto-detected from ${detectedConfig.browserslistSource}`;
-
-        if (options.verbose) {
-          console.log(`🌐 Using detected browserslist: ${browserTargets} (from ${detectedConfig.browserslistSource})`);
-        }
-      } else {
-        // No browserslist detected, auto-determine from target
-        browserTargets = getBrowserTargetsFromString(target);
-        browserslistSource = "auto-determined from target";
-        if (options.verbose) {
-          console.log(`🌐 No browserslist detected, auto-determining from target: ${browserTargets}`);
-        }
-      }
-
-      if (options.verbose) {
-        console.log("");
-        console.log("📊 Configuration Summary:");
-        console.log(`   Target ES version: ${target}`);
-        console.log(`   Target source: ${targetSource}`);
-        console.log(`   Browser targets: ${browserTargets}`);
-        console.log(`   Browserslist source: ${browserslistSource}`);
-        console.log(`   Scan directory: ${scanDirectory}`);
-        console.log(`   Output directory source: ${outputDirSource}`);
-        console.log("");
-      }
-
-      console.log(`🔍 ES-Guard v${version}`);
-      console.log(`📁 Scanning directory: ${scanDirectory}`);
-      console.log(`🎯 Target ES version: ${target} (${targetSource})`);
-      console.log(`🌐 Browser targets: ${browserTargets} (${browserslistSource})`);
+      // Detect and log project type
+      const projectType = getCurrentProjectType();
+      console.log(`🏗️  Project type: ${projectType}`);
       console.log("");
+    }
 
-      const { errors, warnings } = await checkCompatibility({
-        dir: scanDirectory,
-        target: target,
-        browsers: browserTargets,
-      });
+    // Use unified detection to get all configuration at once
+    const detectedConfig = detectProjectConfig(process.cwd());
 
-      if (errors.length > 0) {
-        console.error(`❌ Found ${errors.length} file(s) with compatibility errors:`);
-        for (const violation of errors) {
-          console.error(`\n📄 ${violation.file}:`);
-          for (let i = 0; i < violation.messages.length; i++) {
-            const message = violation.messages[i];
-            const sourceMappedMessage = violation.sourceMappedMessages?.[i];
-            const formattedMessage = formatViolationMessage(message, sourceMappedMessage, process.cwd());
-            console.error(`   ${formattedMessage}`);
-          }
+    // Handle directory detection
+    if (!directory) {
+      if (detectedConfig.outputDir) {
+        scanDirectory = detectedConfig.outputDir;
+        outputDirSource = `auto-detected from ${detectedConfig.outputSource}`;
+
+        if (options.verbose) {
+          console.log(`✅ Found output directory: ${scanDirectory} in ${detectedConfig.outputSource}`);
         }
-      }
-
-      if (warnings.length > 0) {
-        console.warn(`⚠️  Found ${warnings.length} file(s) with compatibility warnings:`);
-        for (const violation of warnings) {
-          console.warn(`\n📄 ${violation.file}:`);
-          for (let i = 0; i < violation.messages.length; i++) {
-            const message = violation.messages[i];
-            const sourceMappedMessage = violation.sourceMappedMessages?.[i];
-            const formattedMessage = formatViolationMessage(message, sourceMappedMessage, process.cwd());
-            console.warn(`   ${formattedMessage}`);
-          }
-        }
-      }
-
-      if (errors.length > 0) {
-        process.exit(1);
       } else {
-        console.log("✅ No compatibility errors found!");
-        if (warnings.length > 0) {
-          console.log(
-            "⚠️  There are compat warnings, but no syntax errors. Please address these warnings and update polyfills in your app and in es-guard config.",
-          );
+        if (options.verbose) {
+          console.log("❌ No output directory configuration found, using default 'dist'");
         }
+        // Use "dist" as fallback when auto-detection fails
+        scanDirectory = "dist";
+        outputDirSource = "default fallback";
       }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.error(`❌ Error: ${message}`);
+    } else {
+      scanDirectory = directory;
+      outputDirSource = "specified";
+    }
+
+    // Validate directory exists
+    if (!fs.existsSync(scanDirectory)) {
+      console.error(`Error: Directory "${scanDirectory}" does not exist`);
+      console.error(`Output directory source: ${outputDirSource}`);
       process.exit(1);
     }
-  },
-);
+
+    const stat = fs.statSync(scanDirectory);
+    if (!stat.isDirectory()) {
+      console.error(`Error: "${scanDirectory}" is not a directory`);
+      process.exit(1);
+    }
+
+    // Handle target detection
+    if (options.target) {
+      target = options.target;
+      targetSource = "specified";
+    } else if (detectedConfig.target) {
+      target = detectedConfig.target;
+      targetSource = `auto-detected from ${detectedConfig.targetSource}`;
+    } else {
+      if (options.verbose) {
+        console.log("❌ No valid configuration files found for target detection");
+        console.log("📋 Searched for:");
+        const configFileNames = getConfigFileNames();
+        configFileNames.forEach((filename, index) => {
+          console.log(`   ${index + 1}. ${filename}`);
+        });
+        console.log("");
+      }
+
+      console.error("Error: No target specified and could not auto-detect from project configuration files.");
+      console.error("Please specify a target with --target or ensure your project has a valid configuration file.");
+      process.exit(1);
+    }
+
+    // Handle browser targets detection
+    if (options.browsers) {
+      browserTargets = options.browsers;
+      browserslistSource = "specified";
+      if (options.verbose) {
+        console.log(`🌐 Using specified browser targets: ${browserTargets}`);
+      }
+    } else if (detectedConfig.browserslist) {
+      // Use the detected browserslist
+      browserTargets = detectedConfig.browserslist.join(", ");
+      browserslistSource = `auto-detected from ${detectedConfig.browserslistSource}`;
+
+      if (options.verbose) {
+        console.log(`🌐 Using detected browserslist: ${browserTargets} (from ${detectedConfig.browserslistSource})`);
+      }
+    } else {
+      // No browserslist detected, auto-determine from target
+      browserTargets = getBrowserTargetsFromString(target);
+      browserslistSource = "auto-determined from target";
+      if (options.verbose) {
+        console.log(`🌐 No browserslist detected, auto-determining from target: ${browserTargets}`);
+      }
+    }
+
+    if (options.verbose) {
+      console.log("");
+      console.log("📊 Configuration Summary:");
+      console.log(`   Target ES version: ${target}`);
+      console.log(`   Target source: ${targetSource}`);
+      console.log(`   Browser targets: ${browserTargets}`);
+      console.log(`   Browserslist source: ${browserslistSource}`);
+      console.log(`   Scan directory: ${scanDirectory}`);
+      console.log(`   Output directory source: ${outputDirSource}`);
+      console.log("");
+    }
+
+    console.log(`🔍 ES-Guard v${version}`);
+    console.log(`📁 Scanning directory: ${scanDirectory}`);
+    console.log(`🎯 Target ES version: ${target} (${targetSource})`);
+    console.log(`🌐 Browser targets: ${browserTargets} (${browserslistSource})`);
+    console.log("");
+
+    const { errors, warnings } = await checkCompatibility({
+      dir: scanDirectory,
+      target: target,
+      browsers: browserTargets,
+    });
+
+    if (errors.length > 0) {
+      console.error(`❌ Found ${errors.length} file(s) with compatibility errors:`);
+      for (const violation of errors) {
+        console.error(`\n📄 ${violation.file}:`);
+        for (let i = 0; i < violation.messages.length; i++) {
+          const message = violation.messages[i];
+          const sourceMappedMessage = violation.sourceMappedMessages?.[i];
+          const formattedMessage = formatViolationMessage(message, sourceMappedMessage, process.cwd());
+          console.error(`   ${formattedMessage}`);
+        }
+      }
+    }
+
+    if (warnings.length > 0) {
+      console.warn(`⚠️  Found ${warnings.length} file(s) with compatibility warnings:`);
+      for (const violation of warnings) {
+        console.warn(`\n📄 ${violation.file}:`);
+        for (let i = 0; i < violation.messages.length; i++) {
+          const message = violation.messages[i];
+          const sourceMappedMessage = violation.sourceMappedMessages?.[i];
+          const formattedMessage = formatViolationMessage(message, sourceMappedMessage, process.cwd());
+          console.warn(`   ${formattedMessage}`);
+        }
+      }
+    }
+
+    if (errors.length > 0) {
+      if (options.skip) {
+        console.log("⚠️  Compatibility errors found, but continuing due to --skip option");
+        process.exit(0);
+      } else {
+        process.exit(1);
+      }
+    }
+
+    console.log("✅ No compatibility errors found!");
+    if (warnings.length > 0) {
+      console.log(
+        "⚠️  There are compat warnings, but no syntax errors. Please address these warnings and update polyfills in your app and in es-guard config.",
+      );
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`❌ Error: ${message}`);
+    process.exit(1);
+  }
+});
 
 // Parse command line arguments
 program.parse();
