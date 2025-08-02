@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/mkayander/es-guard/compare/v1.8.0...v1.9.0) (2025-08-02)
+
+
+### Features
+
+* Add --skip option to CLI for compatibility error handling ([4fc5e4c](https://github.com/mkayander/es-guard/commit/4fc5e4c870f25fc03d89996777bd40002655e96d))
+
 # [1.8.0](https://github.com/mkayander/es-guard/compare/v1.7.0...v1.8.0) (2025-08-02)
 
 
