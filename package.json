@@ -5,7 +5,8 @@
   "type": "module",
   "main": "dist/cli.js",
   "bin": {
-    "es-guard": "dist/cli.js"
+    "es-guard": "dist/cli.js",
+    "esguard": "dist/cli.js"
   },
   "files": [
     "dist"
