@@ -68,22 +68,89 @@ es-guard --version
 
 ### Programmatic Usage
 
+ES-Guard provides a comprehensive programmatic API for integration into your build tools, CI/CD pipelines, or custom scripts.
+
+#### Basic Usage
+
 ```typescript
 import { checkCompatibility } from "es-guard";
 
-// With auto-detected browsers
-const violations = await checkCompatibility({
+// Basic compatibility check
+const result = await checkCompatibility({
   dir: "dist",
-  target: "2015",
+  target: "2020",
 });
 
-// With custom browser specifications
-const violations = await checkCompatibility({
+console.log(`Found ${result.errors.length} errors and ${result.warnings.length} warnings`);
+```
+
+#### Auto-detection
+
+```typescript
+import { checkCompatibility, detectProjectConfig } from "es-guard";
+
+// Auto-detect project configuration
+const config = detectProjectConfig(process.cwd());
+
+if (config.target && config.outputDir) {
+  const result = await checkCompatibility({
+    dir: config.outputDir,
+    target: config.target,
+    browsers: config.browserslist?.join(", "),
+  });
+}
+```
+
+#### Advanced Usage
+
+```typescript
+import { checkCompatibility, getBrowserTargetsFromString, validateConfig, setVerboseMode } from "es-guard";
+
+// Validate configuration
+validateConfig({
   dir: "dist",
-  target: "2015",
+  target: "2020",
+});
+
+// Get browser targets for specific ES version
+const browsers = getBrowserTargetsFromString("2015");
+
+// Enable verbose mode for detailed output
+setVerboseMode(true);
+
+// Run compatibility check
+const result = await checkCompatibility({
+  dir: "dist",
+  target: "2020",
   browsers: "> 1%, last 2 versions, not dead, ie 11",
 });
+
+// Process results
+result.errors.forEach((violation) => {
+  console.log(`Error in ${violation.file}:`);
+  violation.messages.forEach((message) => {
+    console.log(`  Line ${message.line}: ${message.message}`);
+  });
+});
 ```
+
+#### TypeScript Support
+
+ES-Guard includes full TypeScript support with proper type definitions:
+
+```typescript
+import type { Config, CompatibilityResult, Violation } from "es-guard";
+
+const config: Config = {
+  dir: "dist",
+  target: "2020",
+  browsers: "> 1%, last 2 versions, not dead",
+};
+
+const result: CompatibilityResult = await checkCompatibility(config);
+```
+
+See the [examples](./examples/) directory for more comprehensive usage examples.
 
 ### GitHub Actions Integration
 
