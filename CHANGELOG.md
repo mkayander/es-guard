@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/mkayander/es-guard/compare/v1.10.0...v1.11.0) (2025-08-03)
+
+
+### Features
+
+* Enhance global state management and add detection result type ([3deddeb](https://github.com/mkayander/es-guard/commit/3deddebc601efdacc4bfe62d8d7ecd9340245b67))
+
 # [1.10.0](https://github.com/mkayander/es-guard/compare/v1.9.0...v1.10.0) (2025-08-02)
 
 
