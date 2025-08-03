@@ -83,7 +83,7 @@ type ParserResult = {
 /**
  * Detection result type for all project configuration
  */
-type DetectionResult = {
+export type DetectionResult = {
   target?: string;
   targetSource?: string;
   outputDir?: string;
