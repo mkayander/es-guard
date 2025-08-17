@@ -2,6 +2,7 @@
 
 import { Command } from "commander";
 import * as fs from "fs";
+import * as path from "path";
 import packageJson from "../package.json" with { type: "json" };
 import { checkCompatibility, formatViolationMessage } from "./lib/checkCompatiblity.js";
 import { getBrowserTargetsFromString } from "./lib/getBrowserTargets.js";
@@ -31,6 +32,10 @@ program
     "-b, --browsers <targets>",
     "Browser targets for compatibility checking (optional: auto-determined from target)",
   )
+  .option(
+    "-p, --projectDir <directory>",
+    "Project directory for configuration detection (defaults to current working directory)",
+  )
   .option("-v, --verbose", "Enable verbose output showing detailed detection process and configuration information")
   .option("--skip", "Do not exit with error code when compatibility errors are found")
   .addHelpText(
@@ -46,6 +51,9 @@ Examples:
   es-guard --target 2017 --browsers "> 0.5%, last 2 versions" dist
   es-guard --verbose                 # Auto-detect with detailed detection information
   es-guard --skip                    # Auto-detect and continue even if compatibility errors are found
+  es-guard -p /path/to/project              # Use specific project directory for config detection
+  es-guard --projectDir /path/to/project    # Use specific project directory for config detection
+  es-guard -p /path/to/project build        # Check 'build' dir using config from specified project
 
 Auto-detection searches for ES target in:
   - package.json (browserslist field)
@@ -57,8 +65,9 @@ Auto-detection searches for ES target in:
 Auto-detection behavior:
   - When no directory is specified, auto-detects output directory from config files
   - Falls back to 'dist' directory if no output directory config found
-  - Searches for ES target in current working directory
+  - Searches for ES target in current working directory (or --projectDir if specified)
   - Uses the first valid target found (package.json has highest priority)
+  - Can run from any directory using --projectDir to specify project root
 
 Browser targets use Browserslist format:
   - If not specified, browsers will be auto-determined from the ES target version
@@ -92,6 +101,7 @@ program.hook("preAction", (thisCommand) => {
 interface CliOptions {
   target?: string;
   browsers?: string;
+  projectDir?: string;
   verbose?: boolean;
   skip?: boolean;
 }
@@ -101,6 +111,9 @@ program.action(async (directory: string | undefined, options: CliOptions) => {
   try {
     // Set global verbose mode
     setVerboseMode(options.verbose || false);
+
+    // Determine working directory for configuration detection
+    const workingDir = options.projectDir ? path.resolve(options.projectDir) : process.cwd();
 
     // Auto-detect configuration if not specified
     let scanDirectory: string;
@@ -112,21 +125,27 @@ program.action(async (directory: string | undefined, options: CliOptions) => {
 
     if (options.verbose) {
       console.log("🔍 Auto-detecting project configuration...");
-      console.log(`📂 Searching in: ${process.cwd()}`);
+      console.log(`📂 Searching in: ${workingDir}`);
+      if (options.projectDir) {
+        console.log(`📍 Using specified project directory: ${workingDir}`);
+      }
 
       // Detect and log project type
-      const projectType = getCurrentProjectType();
+      const projectType = getCurrentProjectType(workingDir);
       console.log(`🏗️  Project type: ${projectType}`);
       console.log("");
     }
 
     // Use unified detection to get all configuration at once
-    const detectedConfig = detectProjectConfig(process.cwd());
+    const detectedConfig = detectProjectConfig(workingDir);
 
     // Handle directory detection
     if (!directory) {
       if (detectedConfig.outputDir) {
-        scanDirectory = detectedConfig.outputDir;
+        // Resolve output directory relative to working directory
+        scanDirectory = path.isAbsolute(detectedConfig.outputDir)
+          ? detectedConfig.outputDir
+          : path.join(workingDir, detectedConfig.outputDir);
         outputDirSource = `auto-detected from ${detectedConfig.outputSource}`;
 
         if (options.verbose) {
@@ -137,11 +156,12 @@ program.action(async (directory: string | undefined, options: CliOptions) => {
           console.log("❌ No output directory configuration found, using default 'dist'");
         }
         // Use "dist" as fallback when auto-detection fails
-        scanDirectory = "dist";
+        scanDirectory = path.join(workingDir, "dist");
         outputDirSource = "default fallback";
       }
     } else {
-      scanDirectory = directory;
+      // Resolve scan directory relative to working directory
+      scanDirectory = path.isAbsolute(directory) ? directory : path.join(workingDir, directory);
       outputDirSource = "specified";
     }
 
@@ -149,6 +169,9 @@ program.action(async (directory: string | undefined, options: CliOptions) => {
     if (!fs.existsSync(scanDirectory)) {
       console.error(`Error: Directory "${scanDirectory}" does not exist`);
       console.error(`Output directory source: ${outputDirSource}`);
+      if (options.projectDir) {
+        console.error(`Project directory: ${workingDir}`);
+      }
       process.exit(1);
     }
 
@@ -178,6 +201,9 @@ program.action(async (directory: string | undefined, options: CliOptions) => {
 
       console.error("Error: No target specified and could not auto-detect from project configuration files.");
       console.error("Please specify a target with --target or ensure your project has a valid configuration file.");
+      if (options.projectDir) {
+        console.error(`Searched in: ${workingDir}`);
+      }
       process.exit(1);
     }
 
@@ -214,6 +240,9 @@ program.action(async (directory: string | undefined, options: CliOptions) => {
       console.log(`   Browserslist source: ${browserslistSource}`);
       console.log(`   Scan directory: ${scanDirectory}`);
       console.log(`   Output directory source: ${outputDirSource}`);
+      if (options.projectDir) {
+        console.log(`   Project directory: ${workingDir}`);
+      }
       console.log("");
     }
 
@@ -221,6 +250,9 @@ program.action(async (directory: string | undefined, options: CliOptions) => {
     console.log(`📁 Scanning directory: ${scanDirectory}`);
     console.log(`🎯 Target ES version: ${target} (${targetSource})`);
     console.log(`🌐 Browser targets: ${browserTargets} (${browserslistSource})`);
+    if (options.projectDir) {
+      console.log(`📍 Project directory: ${workingDir}`);
+    }
     console.log("");
 
     const { errors, warnings } = await checkCompatibility({
@@ -236,7 +268,7 @@ program.action(async (directory: string | undefined, options: CliOptions) => {
         for (let i = 0; i < violation.messages.length; i++) {
           const message = violation.messages[i];
           const sourceMappedMessage = violation.sourceMappedMessages?.[i];
-          const formattedMessage = formatViolationMessage(message, sourceMappedMessage, process.cwd());
+          const formattedMessage = formatViolationMessage(message, sourceMappedMessage, workingDir);
           console.error(`   ${formattedMessage}`);
         }
       }
@@ -249,7 +281,7 @@ program.action(async (directory: string | undefined, options: CliOptions) => {
         for (let i = 0; i < violation.messages.length; i++) {
           const message = violation.messages[i];
           const sourceMappedMessage = violation.sourceMappedMessages?.[i];
-          const formattedMessage = formatViolationMessage(message, sourceMappedMessage, process.cwd());
+          const formattedMessage = formatViolationMessage(message, sourceMappedMessage, workingDir);
           console.warn(`   ${formattedMessage}`);
         }
       }

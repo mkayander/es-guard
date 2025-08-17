@@ -10,6 +10,7 @@ import {
   type CompatibilityResult,
   type Violation,
 } from "es-guard";
+import path from "path";
 
 // Example 1: Basic compatibility checking with proper types
 async function basicCompatibilityCheck(): Promise<void> {
@@ -178,6 +179,126 @@ async function advancedUsage(): Promise<void> {
   }
 }
 
+// Example 8: Running es-guard from any directory (temp folder support)
+async function tempFolderUsage(): Promise<void> {
+  console.log("\n=== Temp Folder Usage Example ===");
+
+  try {
+    // Example: Running from a temp folder while checking a different project
+    const projectRoot = "/path/to/actual/project";
+    const tempWorkingDir = "/tmp/build-check";
+
+    console.log(`Working from temp directory: ${tempWorkingDir}`);
+    console.log(`Project root: ${projectRoot}`);
+
+    // Detect configuration from the actual project directory
+    const config = detectProjectConfig(projectRoot);
+    console.log("Detected config from project:", config);
+
+    if (config.target && config.outputDir) {
+      // Resolve output directory relative to project root
+      const outputDir = path.isAbsolute(config.outputDir) ? config.outputDir : path.join(projectRoot, config.outputDir);
+
+      console.log(`Checking output directory: ${outputDir}`);
+
+      const result = await checkCompatibility({
+        dir: outputDir,
+        target: config.target,
+        browsers: config.browserslist ? config.browserslist.join(", ") : undefined,
+      });
+
+      console.log(`Temp folder check: ${result.errors.length} errors, ${result.warnings.length} warnings`);
+    } else {
+      console.log("Could not auto-detect configuration from project");
+    }
+  } catch (error) {
+    console.error("Temp folder usage failed:", error instanceof Error ? error.message : String(error));
+  }
+}
+
+// Example 9: CI/CD pipeline usage with different working directories
+async function cicdUsage(): Promise<void> {
+  console.log("\n=== CI/CD Pipeline Usage Example ===");
+
+  try {
+    // Example: Running in CI where working directory might be different
+    const projectRoot = process.env.PROJECT_ROOT || process.cwd();
+    const buildDir = process.env.BUILD_DIR || "dist";
+
+    console.log(`CI environment - Project root: ${projectRoot}`);
+    console.log(`CI environment - Build directory: ${buildDir}`);
+
+    // Detect configuration from project root
+    const config = detectProjectConfig(projectRoot);
+    console.log("CI detected config:", config);
+
+    if (config.target) {
+      // Use build directory from environment or config
+      const scanDir = config.outputDir || buildDir;
+      const fullScanPath = path.isAbsolute(scanDir) ? scanDir : path.join(projectRoot, scanDir);
+
+      console.log(`CI scanning directory: ${fullScanPath}`);
+
+      const result = await checkCompatibility({
+        dir: fullScanPath,
+        target: config.target,
+        browsers: config.browserslist ? config.browserslist.join(", ") : undefined,
+      });
+
+      console.log(`CI check completed: ${result.errors.length} errors, ${result.warnings.length} warnings`);
+
+      // In CI, you might want to exit with error code
+      if (result.errors.length > 0) {
+        console.error("CI check failed with compatibility errors");
+        process.exit(1);
+      }
+    } else {
+      console.error("CI check failed: Could not detect target");
+      process.exit(1);
+    }
+  } catch (error) {
+    console.error("CI/CD usage failed:", error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  }
+}
+
+// Example 10: Multi-project validation from a single script
+async function multiProjectValidation(): Promise<void> {
+  console.log("\n=== Multi-Project Validation Example ===");
+
+  const projects = [
+    { name: "frontend", path: "/path/to/frontend", buildDir: "dist" },
+    { name: "backend", path: "/path/to/backend", buildDir: "build" },
+    { name: "shared", path: "/path/to/shared", buildDir: "lib" },
+  ];
+
+  for (const project of projects) {
+    try {
+      console.log(`\n--- Checking ${project.name} ---`);
+
+      // Detect configuration for this project
+      const config = detectProjectConfig(project.path);
+      console.log(`${project.name} config:`, config);
+
+      if (config.target) {
+        const buildPath = path.join(project.path, project.buildDir);
+
+        const result = await checkCompatibility({
+          dir: buildPath,
+          target: config.target,
+          browsers: config.browserslist ? config.browserslist.join(", ") : undefined,
+        });
+
+        console.log(`${project.name}: ${result.errors.length} errors, ${result.warnings.length} warnings`);
+      } else {
+        console.log(`${project.name}: Could not detect target`);
+      }
+    } catch (error) {
+      console.error(`${project.name} check failed:`, error instanceof Error ? error.message : String(error));
+    }
+  }
+}
+
 // Run all examples
 async function runExamples(): Promise<void> {
   console.log("ES-Guard TypeScript Programmatic Usage Examples\n");
@@ -189,6 +310,9 @@ async function runExamples(): Promise<void> {
   await verboseExample();
   await customConfiguration();
   await advancedUsage();
+  await tempFolderUsage();
+  await cicdUsage();
+  await multiProjectValidation();
 
   console.log("\n=== Examples completed ===");
 }
@@ -202,6 +326,9 @@ export {
   verboseExample,
   customConfiguration,
   advancedUsage,
+  tempFolderUsage,
+  cicdUsage,
+  multiProjectValidation,
   runExamples,
 };
 
