@@ -288,13 +288,14 @@ ES-Guard supports running from any directory while detecting configuration from 
 
 ```bash
 # Run from any directory while using config from /path/to/project
-es-guard --cwd /path/to/project
+es-guard -p /path/to/project
+es-guard --projectDir /path/to/project
 
 # Check specific build directory using project config
-es-guard --cwd /path/to/project build
+es-guard -p /path/to/project build
 
-# Use verbose mode to see working directory information
-es-guard --cwd /path/to/project --verbose
+# Use verbose mode to see project directory information
+es-guard -p /path/to/project --verbose
 ```
 
 ### Programmatic Usage
@@ -326,6 +327,56 @@ if (config.target && config.outputDir) {
 3. **Multi-Project Monorepos**: Validate multiple projects from a single script location
 4. **Remote Build Servers**: Run checks on remote servers while maintaining local project configuration
 5. **Temp Build Directories**: Execute from temporary directories during build processes
+
+## CI/CD Integration
+
+### Test Output in CI
+
+When running tests in CI environments, you may see error messages like:
+
+```
+Error: Directory "/path/to/nonexistent-directory" does not exist
+Error: Invalid ES target: "invalid"
+Warning: Could not lint directory
+Error [BrowserslistError]: Unknown browser query
+```
+
+**These are NOT test failures!** These are expected outputs from tests that are designed to test error handling scenarios. The tests are actually passing successfully.
+
+### CI Configuration
+
+To properly handle test output in CI, configure your CI system to:
+
+1. **Only fail on test exit codes** (not on stderr output)
+2. **Use the JUnit reporter** for structured test results
+3. **Check the JUnit XML file** for actual test failures
+
+### Example CI Commands
+
+```bash
+# Run tests with JUnit output (recommended for CI)
+pnpm run test:junit
+
+# Run tests with coverage and JUnit output
+pnpm run test:junit:coverage
+
+# Check test results
+cat test-report.junit.xml
+```
+
+### GitHub Actions Example
+
+```yaml
+- name: Run Tests
+  run: pnpm run test:junit:coverage
+
+- name: Upload Test Results
+  uses: actions/upload-artifact@v3
+  with:
+    name: test-results
+    path: test-report.junit.xml
+    retention-days: 30
+```
 
 ## Development
 
