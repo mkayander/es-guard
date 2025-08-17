@@ -1,3 +1,10 @@
+# [1.13.0](https://github.com/mkayander/es-guard/compare/v1.12.0...v1.13.0) (2025-08-17)
+
+
+### Features
+
+* Introduce runESGuard function for programmatic usage and enhance CLI integration ([cb90842](https://github.com/mkayander/es-guard/commit/cb908421ca5978d7a2655910fa56f043c9ad4eca))
+
 # [1.12.0](https://github.com/mkayander/es-guard/compare/v1.11.0...v1.12.0) (2025-08-17)
 
 

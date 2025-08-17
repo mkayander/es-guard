@@ -1,6 +1,6 @@
 {
   "name": "es-guard",
-  "version": "1.12.0",
+  "version": "1.13.0",
   "description": "A tool to check JavaScript compatibility with target environments",
   "type": "module",
   "main": "dist/index.js",
