@@ -19,3 +19,22 @@ export type Config = {
 };
 
 export type ProjectType = "nextjs" | "vite" | "webpack" | "rollup" | "parcel" | "generic";
+
+// Programmatic interface types
+export interface ESGuardOptions {
+  target?: string;
+  browsers?: string;
+  verbose?: boolean;
+  skip?: boolean;
+  directory?: string;
+  workingDir?: string;
+}
+
+export interface ESGuardResult {
+  success: boolean;
+  errors: Violation[];
+  warnings: Violation[];
+  scanDirectory: string;
+  target: string;
+  browserTargets: string;
+}

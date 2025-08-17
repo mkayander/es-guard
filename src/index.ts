@@ -4,7 +4,7 @@ export { detectProjectConfig, detectTarget, detectOutputDir, detectBrowserslist 
 export { getBrowserTargetsFromString, getBrowserTargets, parseEcmaVersion } from "./lib/getBrowserTargets.js";
 export { validateConfig } from "./lib/validateConfig.js";
 export { getCurrentProjectType } from "./lib/projectType.js";
-export { runESGuard } from "./cli.js";
+export { runESGuard } from "./main.js";
 export {
   setVerboseMode,
   setDebugMode,
@@ -17,12 +17,16 @@ export {
 } from "./lib/globalState.js";
 
 // Export types for TypeScript users
-export type { Config, Violation, SourceMappedMessage, ProjectType } from "./lib/types.js";
+export type {
+  Config,
+  Violation,
+  SourceMappedMessage,
+  ProjectType,
+  ESGuardOptions,
+  ESGuardResult,
+} from "./lib/types.js";
 
 // Re-export CompatibilityResult from checkCompatiblity
 export type { CompatibilityResult } from "./lib/checkCompatiblity.js";
 
 export type { DetectionResult } from "./lib/detectTarget.js";
-
-// Export CLI programmatic interface types
-export type { ESGuardOptions, ESGuardResult } from "./cli.js";
