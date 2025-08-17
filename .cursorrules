@@ -1,0 +1,187 @@
+# ES-Guard Project Development Rules
+
+## Project Overview
+
+ES-Guard is a TypeScript-based tool that ensures JavaScript code compatibility with target environments using ESLint. It provides both CLI and programmatic APIs for checking ES version compatibility and browser support.
+
+## Technology Stack
+
+- **Language**: TypeScript (strict mode enabled)
+- **Runtime**: Node.js
+- **Package Manager**: PNPM (required, not NPM)
+- **Testing**: Vitest with coverage thresholds
+- **Linting**: ESLint with TypeScript rules
+- **Formatting**: Prettier
+- **Build**: TypeScript compiler (tsc)
+- **Module System**: ES Modules (ESM)
+
+## Project Structure
+
+```
+src/
+├── lib/           # Core library modules
+├── cli.ts         # Command-line interface
+└── index.ts       # Main entry point and exports
+```
+
+## Development Setup
+
+1. **Install dependencies**: `pnpm install` (never use npm)
+2. **Build project**: `pnpm run build`
+3. **Development mode**: `pnpm run dev` (watch mode)
+4. **Clean build**: `pnpm run clean`
+
+## Key Development Commands
+
+- `pnpm run build` - Build the project
+- `pnpm run dev` - Watch mode development
+- `pnpm run test` - Run tests with coverage
+- `pnpm run test:dev` - Run tests in watch mode
+- `pnpm run lint` - Run ESLint
+- `pnpm run lint:check` - Check linting without warnings
+- `pnpm run format` - Format code with Prettier
+- `pnpm run format:check` - Check formatting
+- `pnpm run coverage` - Generate coverage report
+
+## Code Quality Standards
+
+### TypeScript Rules
+
+- **NEVER** use `as any`, `as unknown`, `!` to bypass TypeScript errors
+- Always analyze and fix root causes of type errors
+- Use strict TypeScript configuration
+- Export types from `src/lib/types.ts`
+- Use consistent type imports: `import type { ... }`
+
+### ESLint Configuration
+
+- Strict TypeScript rules enabled
+- No unused variables allowed
+- No explicit `any` types
+- Consistent type imports required
+- Function return types inferred (not required)
+
+### Testing Requirements
+
+- Use Vitest for testing
+- Maintain 80% coverage globally, 90% for lib modules
+- Test files: `src/**/*.{test,spec}.ts`
+- Never write tests that solely check constants or static values
+- Object structure checks handled by TypeScript
+
+## Architecture Guidelines
+
+### Module Organization
+
+- Core functionality in `src/lib/`
+- CLI interface in `src/cli.ts`
+- Main exports in `src/index.ts`
+- Avoid import cycles - move shared code to separate modules
+- Export existing code instead of duplicating
+
+### API Design
+
+- Provide both CLI and programmatic interfaces
+- Use async/await for compatibility checks
+- Implement proper error handling and validation
+- Support auto-detection of project configuration
+- Maintain backward compatibility
+
+### File Naming
+
+- Use kebab-case for files: `checkCompatiblity.ts`
+- Test files: `*.test.ts` or `*.spec.ts`
+- Export main functions from index files
+
+## Key Modules
+
+### Core Modules (`src/lib/`)
+
+- `checkCompatiblity.ts` - Main compatibility checking logic
+- `detectTarget.ts` - Project configuration detection
+- `getBrowserTargets.ts` - Browser target utilities
+- `validateConfig.ts` - Configuration validation
+- `projectType.ts` - Project type detection
+- `globalState.ts` - Global state management
+- `types.ts` - TypeScript type definitions
+
+### CLI Interface
+
+- `src/cli.ts` - Command-line interface using Commander.js
+- Supports ES version targets (year/numeric format)
+- Browser target specification
+- Directory scanning capabilities
+
+## Development Workflow
+
+### Adding New Features
+
+1. Create feature branch
+2. Implement in appropriate module under `src/lib/`
+3. Add comprehensive tests
+4. Update exports in `src/index.ts`
+5. Update documentation and examples
+6. Ensure all tests pass and coverage meets thresholds
+
+### Testing Strategy
+
+- Unit tests for all library functions
+- Integration tests for CLI functionality
+- Test both success and error cases
+- Mock external dependencies appropriately
+- Use descriptive test names
+
+### Code Review Checklist
+
+- [ ] TypeScript strict mode compliance
+- [ ] No type assertions or bypasses
+- [ ] Proper error handling
+- [ ] Test coverage maintained
+- [ ] ESLint rules followed
+- [ ] Prettier formatting applied
+- [ ] No import cycles
+- [ ] No code duplication
+
+## Dependencies
+
+### Production Dependencies
+
+- `@babel/code-frame` - Code frame formatting
+- `chalk` - Terminal colorization
+- `commander` - CLI argument parsing
+- `eslint` - Core linting engine
+- `eslint-plugin-compat` - Browser compatibility checking
+- `source-map` - Source map parsing
+
+### Development Dependencies
+
+- `@eslint/js` - ESLint JavaScript rules
+- `@typescript-eslint/*` - TypeScript ESLint support
+- `vitest` - Testing framework
+- `@vitest/coverage-v8` - Coverage reporting
+- `prettier` - Code formatting
+- `semantic-release` - Automated releases
+
+## Performance Considerations
+
+- Efficient directory scanning
+- Lazy loading of ESLint configurations
+- Minimal memory footprint
+- Fast compatibility checking
+- Optimized for CI/CD environments
+
+## Error Handling
+
+- Comprehensive error messages
+- Source map integration for accurate line numbers
+- Graceful fallbacks for missing configurations
+- Detailed validation of user inputs
+- Proper error propagation through async operations
+
+## Integration Points
+
+- GitHub Actions workflows
+- Build tool integration (Webpack, Vite, Rollup)
+- CI/CD pipelines
+- Editor plugins
+- Custom build scripts
