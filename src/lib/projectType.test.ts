@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
+import { beforeEach, describe, expect, it } from "vitest";
+
 import { resetGlobalState } from "./globalState.js";
 import { detectAndCacheProjectType, getCurrentProjectType } from "./projectType.js";
 

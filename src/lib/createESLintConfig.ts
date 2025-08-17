@@ -1,5 +1,6 @@
 import type { ESLint, Linter } from "eslint";
 import compat from "eslint-plugin-compat";
+
 import { getBrowserTargetsFromString, parseEcmaVersion } from "./getBrowserTargets.js";
 import { isValidEcmaVersion } from "./isValidEcmaVersion.js";
 

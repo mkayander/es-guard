@@ -1,7 +1,6 @@
 /**
  * Default configurations for different project types
  */
-
 import type { ProjectType } from "./types.js";
 
 /**

@@ -1,4 +1,5 @@
 import * as fs from "fs";
+
 import type { Config } from "./types.js";
 
 export const validateConfig = (config: Config): void => {

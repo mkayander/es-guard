@@ -1,12 +1,13 @@
+import { codeFrameColumns } from "@babel/code-frame";
+import chalk from "chalk";
 import type { Linter } from "eslint";
 import { ESLint } from "eslint";
-import chalk from "chalk";
-import { createESLintConfig } from "./createESLintConfig.js";
-import type { Config, Violation, SourceMappedMessage } from "./types.js";
 import * as fs from "fs";
 import * as path from "path";
 import { SourceMapConsumer } from "source-map";
-import { codeFrameColumns } from "@babel/code-frame";
+
+import { createESLintConfig } from "./createESLintConfig.js";
+import type { Config, SourceMappedMessage, Violation } from "./types.js";
 
 export type CompatibilityResult = {
   errors: Violation[];

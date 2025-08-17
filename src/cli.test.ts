@@ -1,7 +1,7 @@
-import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { execSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
 const testDir = path.join(process.cwd(), "test-cli-temp");
 const CLI_CMD = path.join(__dirname, "../dist/cli.js");

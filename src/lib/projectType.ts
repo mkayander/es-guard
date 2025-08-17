@@ -1,9 +1,10 @@
 import * as fs from "fs";
 import * as path from "path";
-import { verboseMode, setProjectType, getProjectType, isProjectTypeDetected } from "./globalState.js";
+
 import { detectProjectType } from "./defaults.js";
-import { readJsonFile, isPackageJson } from "./utils.js";
+import { getProjectType, isProjectTypeDetected, setProjectType, verboseMode } from "./globalState.js";
 import type { ProjectType } from "./types.js";
+import { isPackageJson, readJsonFile } from "./utils.js";
 
 /**
  * Detect and cache project type globally (lazy initialization)

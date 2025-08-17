@@ -1,5 +1,4 @@
 // Global state management for CLI options and project configuration
-
 import type { ProjectType } from "./types.js";
 
 interface GlobalState {

@@ -58,6 +58,7 @@
   "license": "MIT",
   "dependencies": {
     "@babel/code-frame": "^7.27.1",
+    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "chalk": "^5.4.1",
     "commander": "^14.0.0",
     "eslint": "^9.30.1",

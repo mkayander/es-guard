@@ -1,6 +1,6 @@
-import { describe, test, expect } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
+import { describe, expect, test } from "vitest";
 
 describe("Programmatic API", () => {
   test("should export all main functions", async () => {

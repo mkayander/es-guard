@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "fs";
-import * as path from "path";
 import * as os from "os";
-import { detectTarget, detectOutputDir, detectTargetAndOutput, detectBrowserslist } from "./detectTarget.js";
+import * as path from "path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+import { detectBrowserslist, detectOutputDir, detectTarget, detectTargetAndOutput } from "./detectTarget.js";
 import { resetGlobalState } from "./globalState.js";
 
 describe("detectTarget", () => {

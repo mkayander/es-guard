@@ -1,9 +1,10 @@
-import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
+import type { Linter } from "eslint";
 import * as fs from "fs";
 import * as path from "path";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+
 import { checkCompatibility, formatViolationMessage } from "./checkCompatiblity.js";
 import type { Config, SourceMappedMessage } from "./types.js";
-import type { Linter } from "eslint";
 
 // Mock ESLint to avoid actual linting during tests
 const mockLintFiles = vi.fn();

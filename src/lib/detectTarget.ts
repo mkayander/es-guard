@@ -1,18 +1,19 @@
 import * as fs from "fs";
 import * as path from "path";
-import { verboseMode } from "./globalState.js";
+
 import { NEXTJS_DEFAULT_BROWSERSLIST } from "./defaults.js";
+import { verboseMode } from "./globalState.js";
 import { getCurrentProjectType } from "./projectType.js";
 import {
-  readJsonFile,
-  readTextFile,
   evaluateJsFile,
+  isBabelRc,
+  isNextConfig,
   isPackageJson,
   isTsConfig,
-  isBabelRc,
   isViteConfig,
   isWebpackConfig,
-  isNextConfig,
+  readJsonFile,
+  readTextFile,
 } from "./utils.js";
 
 // Shared utilities for ES version parsing and conversion

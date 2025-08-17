@@ -1,6 +1,7 @@
-import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
+
 import { checkCompatibility } from "../lib/checkCompatiblity.js";
 import type { Config } from "../lib/types.js";
 

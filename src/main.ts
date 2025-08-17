@@ -1,11 +1,13 @@
-import type { ESGuardOptions, ESGuardResult } from "./lib/types.js";
+import * as fs from "fs";
+import * as path from "path";
+
+import { checkCompatibility, formatViolationMessage } from "./lib/checkCompatiblity.js";
+import { detectProjectConfig, getConfigFileNames } from "./lib/detectTarget.js";
+import { getBrowserTargetsFromString } from "./lib/getBrowserTargets.js";
 import { setVerboseMode } from "./lib/globalState.js";
 import { getCurrentProjectType } from "./lib/projectType.js";
-import { detectProjectConfig, getConfigFileNames } from "./lib/detectTarget.js";
-import * as path from "path";
-import * as fs from "fs";
-import { checkCompatibility, formatViolationMessage } from "./lib/checkCompatiblity.js";
-import { getBrowserTargetsFromString } from "./lib/getBrowserTargets.js";
+import type { ESGuardOptions, ESGuardResult } from "./lib/types.js";
+
 import { version } from "./version.js";
 
 export async function runESGuard(options: ESGuardOptions = {}): Promise<ESGuardResult> {

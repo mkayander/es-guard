@@ -1,9 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+
 import {
-  NEXTJS_DEFAULT_BROWSERSLIST,
+  detectProjectType,
   getDefaultBrowserslist,
   getDefaultOutputDir,
-  detectProjectType,
+  NEXTJS_DEFAULT_BROWSERSLIST,
 } from "./defaults.js";
 
 describe("defaults", () => {
