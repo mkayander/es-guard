@@ -1,3 +1,10 @@
+# [1.12.0](https://github.com/mkayander/es-guard/compare/v1.11.0...v1.12.0) (2025-08-17)
+
+
+### Features
+
+* Add temp folder support and enhance CLI options for project directory detection ([a908516](https://github.com/mkayander/es-guard/commit/a908516cf1933027f68b16114b477f74e5e21c39))
+
 # [1.11.0](https://github.com/mkayander/es-guard/compare/v1.10.0...v1.11.0) (2025-08-03)
 
 
