@@ -31,25 +31,6 @@ JavaScript version of the programmatic usage examples.
 
 **Best for:** JavaScript developers who prefer JS over TS.
 
-### 3. **temp-folder-demo.js** - Temp Folder & Remote Project Support 🆕
-
-Demonstrates how to use ES-Guard from any directory while detecting configuration from different project roots.
-
-**Features demonstrated:**
-
-- Running from temp folders or different working directories
-- CI/CD pipeline simulation
-- Multi-project validation from single location
-- Cross-platform path handling
-- Configuration detection from remote project directories
-
-**Best for:**
-
-- CI/CD pipeline developers
-- Build script authors
-- Multi-project monorepo maintainers
-- Developers working with Docker containers or remote build servers
-
 ### 4. **source-map-demo.js** - Source Map Integration
 
 Shows how ES-Guard handles source maps for accurate error reporting.
@@ -75,52 +56,6 @@ Simple example without source map complexity.
 
 **Best for:** Getting started with ES-Guard or simple use cases.
 
-## Temp Folder Support Features
-
-ES-Guard now supports running from any directory while maintaining full configuration detection capabilities:
-
-### CLI Usage
-
-```bash
-# Run from any directory using --projectDir to specify project root
-es-guard -p /path/to/project
-es-guard --projectDir /path/to/project
-es-guard -p /path/to/project build
-
-# Use verbose mode to see project directory information
-es-guard -p /path/to/project --verbose
-```
-
-### Programmatic Usage
-
-```javascript
-import { detectProjectConfig, checkCompatibility } from "es-guard";
-
-// Detect config from project root (can be different from current working directory)
-const config = detectProjectConfig("/path/to/actual/project");
-
-if (config.target && config.outputDir) {
-  // Resolve paths relative to project root
-  const outputDir = path.isAbsolute(config.outputDir)
-    ? config.outputDir
-    : path.join("/path/to/actual/project", config.outputDir);
-
-  const result = await checkCompatibility({
-    dir: outputDir,
-    target: config.target,
-    browsers: config.browserslist?.join(", "),
-  });
-}
-```
-
-### Use Cases
-
-1. **Build Containers**: Run compatibility checks from Docker containers with mounted project directories
-2. **CI/CD Pipelines**: Execute checks from different working directories in automated workflows
-3. **Multi-Project Monorepos**: Validate multiple projects from a single script location
-4. **Remote Build Servers**: Run checks on remote servers while maintaining local project configuration
-5. **Temp Build Directories**: Execute from temporary directories during build processes
-
 ## Running the Examples
 
 ### Prerequisites
@@ -141,7 +76,6 @@ node dist/examples/programmatic-usage.js
 ```bash
 # Run JavaScript examples directly
 node examples/programmatic-usage.js
-node examples/temp-folder-demo.js
 ```
 
 ### Source Map Examples
@@ -152,60 +86,6 @@ pnpm run build
 
 # Run source map demo
 node examples/source-map-demo.js
-```
-
-## Example Output
-
-### Temp Folder Demo Output
-
-```
-🚀 ES-Guard Temp Folder Demo
-
-=== Example 1: Different Working Directory ===
-Current working directory: /path/to/project
-Project root: /path/to/project
-Temp working directory: /path/to/project/temp-demo
-
-🔍 Detecting configuration from project root...
-Detected configuration:
-  Target: 2020
-  Output directory: ./dist
-  Browserslist: > 1%, last 2 versions, not dead
-
-📁 Checking output directory: /path/to/project/dist
-
-✅ Compatibility check completed:
-  Errors: 0
-  Warnings: 2
-
-=== Example 2: CI/CD Pipeline Simulation ===
-CI environment - Project root: /path/to/project
-CI environment - Build directory: dist
-
-🔍 Detecting configuration for CI...
-CI scanning directory: /path/to/project/dist
-✅ CI configuration detected successfully
-  Target: 2020
-  Scan directory: /path/to/project/dist
-
-=== Example 3: Multi-Project Validation ===
---- Checking frontend ---
-✅ frontend: Target 2020, Build: /path/to/project/dist
-
---- Checking backend ---
-⚠️  backend: Could not detect target
-
---- Checking shared ---
-⚠️  shared: Could not detect target
-
-🎉 Temp Folder Demo Completed!
-
-Key Benefits:
-  • Run from any directory (temp folders, CI containers, etc.)
-  • Detect configuration from different project roots
-  • Support for CI/CD pipelines and build containers
-  • Multi-project validation from single location
-  • Cross-platform path handling
 ```
 
 ## Integration Examples
@@ -252,12 +132,8 @@ CMD ["npx", "es-guard", "-p", "/app", "dist"]
 # Build the project
 npm run build
 
-# Run compatibility check from temp directory
-cd /tmp
-npx es-guard -p /path/to/project dist
-
-# Return to original directory
-cd /path/to/project
+# Run compatibility check
+npx es-guard dist
 ```
 
 ## Getting Help

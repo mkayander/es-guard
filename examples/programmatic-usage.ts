@@ -179,43 +179,6 @@ async function advancedUsage(): Promise<void> {
   }
 }
 
-// Example 8: Running es-guard from any directory (temp folder support)
-async function tempFolderUsage(): Promise<void> {
-  console.log("\n=== Temp Folder Usage Example ===");
-
-  try {
-    // Example: Running from a temp folder while checking a different project
-    const projectRoot = "/path/to/actual/project";
-    const tempWorkingDir = "/tmp/build-check";
-
-    console.log(`Working from temp directory: ${tempWorkingDir}`);
-    console.log(`Project root: ${projectRoot}`);
-
-    // Detect configuration from the actual project directory
-    const config = detectProjectConfig(projectRoot);
-    console.log("Detected config from project:", config);
-
-    if (config.target && config.outputDir) {
-      // Resolve output directory relative to project root
-      const outputDir = path.isAbsolute(config.outputDir) ? config.outputDir : path.join(projectRoot, config.outputDir);
-
-      console.log(`Checking output directory: ${outputDir}`);
-
-      const result = await checkCompatibility({
-        dir: outputDir,
-        target: config.target,
-        browsers: config.browserslist ? config.browserslist.join(", ") : undefined,
-      });
-
-      console.log(`Temp folder check: ${result.errors.length} errors, ${result.warnings.length} warnings`);
-    } else {
-      console.log("Could not auto-detect configuration from project");
-    }
-  } catch (error) {
-    console.error("Temp folder usage failed:", error instanceof Error ? error.message : String(error));
-  }
-}
-
 // Example 9: CI/CD pipeline usage with different working directories
 async function cicdUsage(): Promise<void> {
   console.log("\n=== CI/CD Pipeline Usage Example ===");
@@ -310,7 +273,7 @@ async function runExamples(): Promise<void> {
   await verboseExample();
   await customConfiguration();
   await advancedUsage();
-  await tempFolderUsage();
+
   await cicdUsage();
   await multiProjectValidation();
 
@@ -326,7 +289,6 @@ export {
   verboseExample,
   customConfiguration,
   advancedUsage,
-  tempFolderUsage,
   cicdUsage,
   multiProjectValidation,
   runExamples,

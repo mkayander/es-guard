@@ -12,7 +12,6 @@ A powerful TypeScript-based tool that ensures your JavaScript code is compatible
 - 📁 **Comprehensive Directory Scanning**: Effortlessly scan directories for JavaScript files
 - 🚀 **GitHub Actions Integration**: Seamlessly integrate with GitHub Actions workflows
 - 📦 **Flexible Installation**: Install globally or use as a project dependency
-- 🗂️ **Temp Folder Support**: Run from any directory while detecting config from project root
 
 ## Installation
 
@@ -60,10 +59,7 @@ es-guard -t latest build
 # Specify custom browser targets
 es-guard --browsers "> 0.5%, last 2 versions, Firefox ESR, not dead" dist
 
-# Run from any directory using --projectDir to specify project root
-es-guard -p /path/to/project
-es-guard --projectDir /path/to/project
-es-guard -p /path/to/project build
+
 
 # Display help information
 es-guard --help
@@ -101,31 +97,6 @@ const config = detectProjectConfig(process.cwd());
 if (config.target && config.outputDir) {
   const result = await checkCompatibility({
     dir: config.outputDir,
-    target: config.target,
-    browsers: config.browserslist?.join(", "),
-  });
-}
-```
-
-#### Temp Folder / Remote Project Usage
-
-```typescript
-import { checkCompatibility, detectProjectConfig } from "es-guard";
-import path from "path";
-
-// Run from any directory while checking a different project
-const projectRoot = "/path/to/actual/project";
-const tempWorkingDir = "/tmp/build-check";
-
-// Detect configuration from the actual project directory
-const config = detectProjectConfig(projectRoot);
-
-if (config.target && config.outputDir) {
-  // Resolve output directory relative to project root
-  const outputDir = path.isAbsolute(config.outputDir) ? config.outputDir : path.join(projectRoot, config.outputDir);
-
-  const result = await checkCompatibility({
-    dir: outputDir,
     target: config.target,
     browsers: config.browserslist?.join(", "),
   });
@@ -243,13 +214,13 @@ jobs:
 
 ### CLI Options
 
-| Option                         | Description                            | Default                   |
-| ------------------------------ | -------------------------------------- | ------------------------- |
-| `-t, --target <version>`       | Target ES version                      | Auto-detected             |
-| `-b, --browsers <targets>`     | Browser targets                        | Auto-detected             |
-| `-p, --projectDir <directory>` | Project directory for config detection | Current working directory |
-| `-v, --verbose`                | Enable verbose output                  | `false`                   |
-| `--skip`                       | Continue on compatibility errors       | `false`                   |
+| Option                     | Description       | Default       |
+| -------------------------- | ----------------- | ------------- |
+| `-t, --target <version>`   | Target ES version | Auto-detected |
+| `-b, --browsers <targets>` | Browser targets   | Auto-detected |
+
+| `-v, --verbose` | Enable verbose output | `false` |
+| `--skip` | Continue on compatibility errors | `false` |
 
 ### ES Target Versions
 
@@ -274,59 +245,6 @@ Custom browser target examples:
 - `> 0.5%, last 2 versions, Firefox ESR, not dead` - Broader browser support
 - `defaults` - Default Browserslist targets
 - `last 1 version` - Latest version of each browser
-
-## Temp Folder & Remote Project Support
-
-ES-Guard supports running from any directory while detecting configuration from a different project root. This is particularly useful for:
-
-- **CI/CD Pipelines**: Run compatibility checks from build containers
-- **Build Scripts**: Execute from temp directories during build processes
-- **Multi-Project Validation**: Check multiple projects from a single location
-- **Remote Execution**: Run checks from different working directories
-
-### CLI Usage
-
-```bash
-# Run from any directory while using config from /path/to/project
-es-guard -p /path/to/project
-es-guard --projectDir /path/to/project
-
-# Check specific build directory using project config
-es-guard -p /path/to/project build
-
-# Use verbose mode to see project directory information
-es-guard -p /path/to/project --verbose
-```
-
-### Programmatic Usage
-
-```typescript
-import { detectProjectConfig, checkCompatibility } from "es-guard";
-
-// Detect config from project root (can be different from current working directory)
-const config = detectProjectConfig("/path/to/project");
-
-if (config.target && config.outputDir) {
-  // Resolve paths relative to project root
-  const outputDir = path.isAbsolute(config.outputDir)
-    ? config.outputDir
-    : path.join("/path/to/project", config.outputDir);
-
-  const result = await checkCompatibility({
-    dir: outputDir,
-    target: config.target,
-    browsers: config.browserslist?.join(", "),
-  });
-}
-```
-
-### Use Cases
-
-1. **Build Containers**: Run compatibility checks from Docker containers with mounted project directories
-2. **CI/CD Pipelines**: Execute checks from different working directories in automated workflows
-3. **Multi-Project Monorepos**: Validate multiple projects from a single script location
-4. **Remote Build Servers**: Run checks on remote servers while maintaining local project configuration
-5. **Temp Build Directories**: Execute from temporary directories during build processes
 
 ## CI/CD Integration
 
