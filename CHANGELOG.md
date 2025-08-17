@@ -1,3 +1,10 @@
+## [1.13.1](https://github.com/mkayander/es-guard/compare/v1.13.0...v1.13.1) (2025-08-17)
+
+
+### Bug Fixes
+
+* Update .gitignore to include test-report.junit.xml ([672cbb2](https://github.com/mkayander/es-guard/commit/672cbb22e5775a19e553e89dbb19a21686623d08))
+
 # [1.13.0](https://github.com/mkayander/es-guard/compare/v1.12.0...v1.13.0) (2025-08-17)
 
 
