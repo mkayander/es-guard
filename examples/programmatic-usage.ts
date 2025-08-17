@@ -6,9 +6,12 @@ import {
   validateConfig,
   getCurrentProjectType,
   setVerboseMode,
+  runESGuard,
   type Config,
   type CompatibilityResult,
   type Violation,
+  type ESGuardOptions,
+  type ESGuardResult,
 } from "es-guard";
 import path from "path";
 
@@ -225,7 +228,56 @@ async function cicdUsage(): Promise<void> {
   }
 }
 
-// Example 10: Multi-project validation from a single script
+// Example 10: Using the high-level runESGuard function (CLI equivalent)
+async function runESGuardExample(): Promise<void> {
+  console.log("\n=== runESGuard Function Example ===");
+
+  try {
+    // This function provides the same functionality as the CLI
+    // but can be called programmatically with full control
+    const options: ESGuardOptions = {
+      target: "2020",
+      directory: "dist",
+      verbose: true,
+      skip: false,
+    };
+
+    console.log("Running ES-Guard with options:", options);
+    const result: ESGuardResult = await runESGuard(options);
+
+    console.log("ES-Guard result:", {
+      success: result.success,
+      scanDirectory: result.scanDirectory,
+      target: result.target,
+      browserTargets: result.browserTargets,
+      errorCount: result.errors.length,
+      warningCount: result.warnings.length,
+    });
+
+    if (result.errors.length > 0) {
+      console.log("Compatibility errors found:", result.errors.length);
+      // You can process errors programmatically here
+    }
+
+    if (result.warnings.length > 0) {
+      console.log("Compatibility warnings found:", result.warnings.length);
+      // You can process warnings programmatically here
+    }
+
+    // The function handles all the CLI logic:
+    // - Auto-detection of configuration
+    // - Directory validation
+    // - Target detection
+    // - Browser target determination
+    // - ESLint compatibility checking
+    // - Console output formatting
+    // - Error handling
+  } catch (error) {
+    console.error("runESGuard failed:", error instanceof Error ? error.message : String(error));
+  }
+}
+
+// Example 11: Multi-project validation from a single script
 async function multiProjectValidation(): Promise<void> {
   console.log("\n=== Multi-Project Validation Example ===");
 
@@ -275,6 +327,7 @@ async function runExamples(): Promise<void> {
   await advancedUsage();
 
   await cicdUsage();
+  await runESGuardExample();
   await multiProjectValidation();
 
   console.log("\n=== Examples completed ===");
@@ -290,6 +343,7 @@ export {
   customConfiguration,
   advancedUsage,
   cicdUsage,
+  runESGuardExample,
   multiProjectValidation,
   runExamples,
 };
