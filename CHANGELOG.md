@@ -1,3 +1,10 @@
+## [1.13.2](https://github.com/mkayander/es-guard/compare/v1.13.1...v1.13.2) (2025-08-24)
+
+
+### Bug Fixes
+
+* Remove unnecessary comment from createESLintConfig test setup ([4081f46](https://github.com/mkayander/es-guard/commit/4081f46391c3989f1f5cd2aefe7b3af7695f8b26))
+
 ## [1.13.1](https://github.com/mkayander/es-guard/compare/v1.13.0...v1.13.1) (2025-08-17)
 
 
