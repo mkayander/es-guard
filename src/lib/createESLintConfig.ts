@@ -14,6 +14,11 @@ const getEcmaVersion = (target: string): Linter.EcmaVersion => {
   return ecmaVersion as Linter.EcmaVersion;
 };
 
+/**
+ * Creates an ESLint configuration that ignores project-level ignore patterns.
+ * This ensures that es-guard can scan ALL files in the target directory,
+ * including those that would normally be excluded by .eslintignore or other project settings.
+ */
 export const createESLintConfig = (target: string, browsers?: string): ESLint.Options => {
   // Convert target year to ECMAScript version number using the validation function
   const ecmaVersion = getEcmaVersion(target);
@@ -23,6 +28,10 @@ export const createESLintConfig = (target: string, browsers?: string): ESLint.Op
 
   return {
     overrideConfigFile: true,
+    // Disable ignore patterns to ensure we scan ALL files in the target directory
+    ignore: false,
+    // Override any project-level ignore settings
+    ignorePatterns: [],
     overrideConfig: [
       {
         plugins: {
