@@ -109,7 +109,6 @@ describe("createESLintConfig", () => {
     const testDir = path.join(process.cwd(), "test-ignore-temp");
 
     beforeEach(() => {
-      // Create test directory structure
       if (!fs.existsSync(testDir)) {
         fs.mkdirSync(testDir, { recursive: true });
       }
