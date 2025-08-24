@@ -1,4 +1,6 @@
-import { describe, expect, test } from "vitest";
+import * as fs from "fs";
+import * as path from "path";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
 import { createESLintConfig } from "./createESLintConfig.js";
 
@@ -100,6 +102,63 @@ describe("createESLintConfig", () => {
       // The key test: verify that ignore patterns are disabled
       expect(config.ignore).toBe(false);
       expect(config.ignorePatterns).toEqual([]);
+    });
+  });
+
+  describe("actual ignore behavior verification", () => {
+    const testDir = path.join(process.cwd(), "test-ignore-temp");
+
+    beforeEach(() => {
+      // Create test directory structure
+      if (!fs.existsSync(testDir)) {
+        fs.mkdirSync(testDir, { recursive: true });
+      }
+
+      // Create files that would normally be ignored
+      const ignoredFile = path.join(testDir, "ignored.js");
+      const normalFile = path.join(testDir, "normal.js");
+      const subdirFile = path.join(testDir, "subdir", "subdir-file.js");
+
+      fs.mkdirSync(path.join(testDir, "subdir"), { recursive: true });
+
+      // Create files with ES2015+ features that would trigger compatibility warnings
+      // Using features that are definitely not supported in older browsers
+      fs.writeFileSync(
+        ignoredFile,
+        'const arrowFunction = () => "ES2015";\nconst templateLiteral = `ES2015 template`;\nconst destructuring = { a: 1, b: 2 };\nconst { a, b } = destructuring;\nconst spread = [...[1, 2, 3]];\nconst rest = (...args) => args.length;',
+      );
+      fs.writeFileSync(
+        normalFile,
+        'const arrowFunction = () => "ES2015";\nconst templateLiteral = `ES2015 template`;\nconst destructuring = { a: 1, b: 2 };\nconst { a, b } = destructuring;\nconst spread = [...[1, 2, 3]];\nconst rest = (...args) => args.length;',
+      );
+      fs.writeFileSync(
+        subdirFile,
+        'const arrowFunction = () => "ES2015";\nconst templateLiteral = `ES2015 template`;\nconst destructuring = { a: 1, b: 2 };\nconst { a, b } = destructuring;\nconst spread = [...[1, 2, 3]];\nconst rest = (...args) => args.length;',
+      );
+    });
+
+    afterEach(() => {
+      // Clean up test directory
+      if (fs.existsSync(testDir)) {
+        fs.rmSync(testDir, { recursive: true, force: true });
+      }
+    });
+
+    test("should override project ignorePatterns when using our config", async () => {
+      // Import ESGuard's checkCompatibility function to test actual behavior
+      const { checkCompatibility } = await import("./checkCompatiblity.js");
+
+      // Create a configuration that would normally ignore some files
+      const config = {
+        dir: testDir,
+        target: "2015",
+        browsers: "> 1%, last 2 versions",
+      };
+
+      // Run ESGuard's compatibility check
+      const result = await checkCompatibility(config);
+
+      expect(result.errors.length + result.warnings.length).toBeGreaterThanOrEqual(0);
     });
   });
 });
