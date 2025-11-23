@@ -318,7 +318,53 @@ describe("formatViolationMessage", () => {
     };
 
     const result = formatViolationMessage(message, sourceMappedMessage);
+    // Should always show the original import path (webpack://) even if we can resolve it
     expect(result).toContain("Original: webpack:///./src/components/Button.tsx:15:8");
+  });
+
+  test("should handle source map with turbopack:// prefix", () => {
+    const message: Linter.LintMessage = {
+      ruleId: "compat/compat",
+      severity: 2,
+      message: "ES2015 'const' is not supported in IE 11",
+      line: 10,
+      column: 5,
+    };
+
+    const sourceMappedMessage: SourceMappedMessage = {
+      ...message,
+      originalFile: "turbopack:///./src/components/Button.tsx",
+      originalLine: 15,
+      originalColumn: 8,
+    };
+
+    const result = formatViolationMessage(message, sourceMappedMessage);
+    // Should always show the original import path (turbopack://) even if we can resolve it
+    expect(result).toContain("Original: turbopack:///./src/components/Button.tsx:15:8");
+  });
+
+  test("should handle source map with turbopack://[project]/ prefix", () => {
+    const message: Linter.LintMessage = {
+      ruleId: "compat/compat",
+      severity: 2,
+      message: "Parsing error: Unexpected token",
+      line: 1,
+      column: 193641,
+    };
+
+    const sourceMappedMessage: SourceMappedMessage = {
+      ...message,
+      originalFile:
+        "turbopack:///[project]/node_modules/.pnpm/next@16.0.2_@babel+core@7.2_c0e25bf22b990f05438e3e6ef1db8e1d/node_modules/next/src/shared/lib/router/adapters.tsx",
+      originalLine: 72,
+      originalColumn: 2,
+    };
+
+    const result = formatViolationMessage(message, sourceMappedMessage);
+    // Should always show the original import path with [project] placeholder
+    expect(result).toContain(
+      "Original: turbopack:///[project]/node_modules/.pnpm/next@16.0.2_@babel+core@7.2_c0e25bf22b990f05438e3e6ef1db8e1d/node_modules/next/src/shared/lib/router/adapters.tsx:72:2",
+    );
   });
 
   test("should handle message without ruleId", () => {

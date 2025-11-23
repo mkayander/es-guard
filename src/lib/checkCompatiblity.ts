@@ -117,6 +117,80 @@ async function getSourceMapForFile(jsFile: string): Promise<SourceMapConsumer | 
 }
 
 /**
+ * Checks if a file path is a build tool protocol (webpack://, turbopack://, etc.)
+ */
+function checkIsBuildToolProtocol(filePath: string): boolean {
+  return filePath.startsWith("webpack://") || filePath.startsWith("turbopack://");
+}
+
+/**
+ * Extracts the file path from a build tool protocol URL.
+ * Handles both webpack:// and turbopack:// formats.
+ */
+function extractPathFromBuildToolProtocol(originalFile: string): string | null {
+  if (originalFile.startsWith("turbopack://")) {
+    // Turbopack format: turbopack:///[project]/path/to/file
+    // Extract path after [project]/
+    const turbopackMatch = originalFile.match(/turbopack:\/\/\/\[project\]\/(.+)$/);
+    if (turbopackMatch) {
+      return turbopackMatch[1];
+    }
+    // Fallback: try to extract path after protocol
+    const fallbackMatch = originalFile.match(/turbopack:\/\/\/[^/]*\/(.+)$/);
+    if (fallbackMatch) {
+      return fallbackMatch[1];
+    }
+  } else if (originalFile.startsWith("webpack://")) {
+    // Webpack format: webpack:///./path/to/file or webpack:///path/to/file
+    const webpackMatch = originalFile.match(/webpack:\/\/\/[^/]*\/(.+)$/);
+    if (webpackMatch) {
+      return webpackMatch[1];
+    }
+  }
+  return null;
+}
+
+/**
+ * Tries to resolve a file path by checking multiple possible locations.
+ * @param extractedPath The path extracted from the build tool protocol
+ * @param baseDir Base directory (usually project root)
+ * @param compiledFilePath Optional path to the compiled file, used to find project root
+ */
+function resolveFilePath(extractedPath: string, baseDir: string, compiledFilePath?: string): string | null {
+  // Remove leading ./ if present (common in webpack paths)
+  const cleanPath = extractedPath.replace(/^\.\//, "");
+
+  // First, try direct path from baseDir (most common case - project root)
+  // This is the fastest and most reliable check
+  const baseDirPath = path.join(baseDir, cleanPath);
+  if (fs.existsSync(baseDirPath)) {
+    return baseDirPath;
+  }
+
+  // Second, try relative to the compiled file's directory (for Next.js .next output)
+  // Walk up from .next/static/chunks/ to find project root
+  if (compiledFilePath) {
+    let currentDir = path.dirname(compiledFilePath);
+    const maxDepth = 10; // Prevent infinite loops
+    let depth = 0;
+
+    while (depth < maxDepth && currentDir !== path.dirname(currentDir)) {
+      const testPath = path.join(currentDir, cleanPath);
+      if (fs.existsSync(testPath)) {
+        return testPath;
+      }
+      // Stop if we've gone up too far (reached a drive root on Windows or / on Unix)
+      const parentDir = path.dirname(currentDir);
+      if (parentDir === currentDir) break;
+      currentDir = parentDir;
+      depth++;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Recursively follows source map chains to find the original source file.
  * This handles cases where there are multiple layers of source maps.
  */
@@ -139,8 +213,8 @@ async function getOriginalSourceMap(
     if (firstPosition && firstPosition.source) {
       originalFile = firstPosition.source;
 
-      // If this source file is a webpack:// URL, we've reached the end
-      if (originalFile.startsWith("webpack://")) {
+      // If this source file is a build tool protocol URL, we've reached the end
+      if (checkIsBuildToolProtocol(originalFile)) {
         break;
       }
 
@@ -214,8 +288,9 @@ export const checkCompatibility = async (config: Config): Promise<CompatibilityR
       }
 
       if (sourceMap) {
-        if (errorMessages.length > 0) {
-          sourceMappedErrors = errorMessages.map((msg) => {
+        // Helper to map messages to source-mapped messages
+        const mapMessagesToSourceMapped = (messages: Linter.LintMessage[]): SourceMappedMessage[] => {
+          return messages.map((msg) => {
             if (msg.line != null && msg.column != null) {
               const orig = sourceMap!.originalPositionFor({
                 line: msg.line,
@@ -230,23 +305,13 @@ export const checkCompatibility = async (config: Config): Promise<CompatibilityR
             }
             return msg;
           });
+        };
+
+        if (errorMessages.length > 0) {
+          sourceMappedErrors = mapMessagesToSourceMapped(errorMessages);
         }
         if (warningMessages.length > 0) {
-          sourceMappedWarnings = warningMessages.map((msg) => {
-            if (msg.line != null && msg.column != null) {
-              const orig = sourceMap!.originalPositionFor({
-                line: msg.line,
-                column: msg.column,
-              });
-              return {
-                ...msg,
-                originalFile: orig.source || originalFile || undefined,
-                originalLine: orig.line || undefined,
-                originalColumn: orig.column || undefined,
-              };
-            }
-            return msg;
-          });
+          sourceMappedWarnings = mapMessagesToSourceMapped(warningMessages);
         }
         if (sourceMap.destroy) sourceMap.destroy();
       }
@@ -294,6 +359,8 @@ export const formatViolationMessage = (
   baseDir: string = process.cwd(),
   explicitFilePath?: string,
 ): string => {
+  // Store the compiled file path for path resolution
+  const compiledFilePath = explicitFilePath;
   const lineCol = chalk.gray(`${message.line}:${message.column}`);
   const ruleInfo = message.ruleId ? chalk.dim(` (${message.ruleId})`) : "";
 
@@ -303,49 +370,30 @@ export const formatViolationMessage = (
   let column: number | undefined;
   let canReadSource = false;
 
-  // Prefer explicit file path if provided
-  if (explicitFilePath) {
-    filePath = explicitFilePath;
-    line = message.line;
-    column = message.column;
-    canReadSource = fs.existsSync(filePath);
-  } else if (sourceMappedMessage?.originalFile && sourceMappedMessage?.originalLine) {
+  // Prioritize source-mapped file over compiled file if available
+  if (sourceMappedMessage?.originalFile && sourceMappedMessage?.originalLine) {
     const originalFile = sourceMappedMessage.originalFile;
     line = sourceMappedMessage.originalLine;
     column = sourceMappedMessage.originalColumn || 0;
 
-    // Handle webpack:// URLs - try to extract the actual file path
-    if (originalFile.startsWith("webpack://")) {
-      const match = originalFile.match(/webpack:\/\/[^/]*\/(.+)$/);
-      if (match) {
-        const extractedPath = match[1];
-        const possiblePaths = [
-          path.join(baseDir, extractedPath),
-          path.join(baseDir, "src", extractedPath),
-          path.join(baseDir, "app", extractedPath),
-          path.join(baseDir, "pages", extractedPath),
-          path.join(baseDir, "components", extractedPath),
-        ];
-        for (const possiblePath of possiblePaths) {
-          if (fs.existsSync(possiblePath)) {
-            filePath = possiblePath;
-            canReadSource = true;
-            break;
-          }
-        }
-      }
-      if (!filePath) {
-        filePath = undefined;
-        canReadSource = false;
+    // Handle build tool protocol URLs (webpack://, turbopack://) - try to extract the actual file path
+    if (checkIsBuildToolProtocol(originalFile)) {
+      const extractedPath = extractPathFromBuildToolProtocol(originalFile);
+      if (extractedPath) {
+        const resolvedPath = resolveFilePath(extractedPath, baseDir, compiledFilePath);
+        filePath = resolvedPath ?? undefined;
+        canReadSource = resolvedPath !== null;
       }
     } else {
-      filePath = originalFile;
-      if (!path.isAbsolute(filePath)) {
-        const cleanPath = filePath.replace(/^\.\//, "");
-        filePath = path.join(baseDir, cleanPath);
-      }
+      filePath = path.isAbsolute(originalFile) ? originalFile : path.join(baseDir, originalFile.replace(/^\.\//, ""));
       canReadSource = fs.existsSync(filePath);
     }
+  } else if (explicitFilePath) {
+    // Fallback to compiled file if no source map available
+    filePath = explicitFilePath;
+    line = message.line;
+    column = message.column;
+    canReadSource = fs.existsSync(filePath);
   } else if (message.line && message.column) {
     filePath = undefined;
     line = message.line;
@@ -362,41 +410,45 @@ export const formatViolationMessage = (
     codeFrame = generateCodeFrame(explicitFilePath, message.line, message.column || 1);
   }
 
+  // Helper to get error/warning label
+  const getLabel = (): string => {
+    return message.severity === 2 ? chalk.red.bold("ERROR") : chalk.yellow.bold("WARNING");
+  };
+
   // If we have source-mapped info, show the original source
   if (sourceMappedMessage?.originalFile && sourceMappedMessage?.originalLine) {
     const originalFile = sourceMappedMessage.originalFile;
     const originalLine = sourceMappedMessage.originalLine;
     const originalCol = sourceMappedMessage.originalColumn || 0;
+    const isBuildToolProtocol = checkIsBuildToolProtocol(originalFile);
 
-    let linkIndicator: string;
-    let linkPath: string | undefined;
-    if (originalFile.startsWith("webpack://")) {
-      linkIndicator = canReadSource ? "[src]" : "[map]";
-      if (canReadSource && filePath) linkPath = filePath;
-    } else if (canReadSource && filePath) {
-      linkIndicator = "[src]";
-      linkPath = filePath;
-    } else {
-      linkIndicator = "[file]";
-    }
+    // Determine link indicator and path
+    const linkIndicator = isBuildToolProtocol
+      ? canReadSource
+        ? "[src]"
+        : "[map]"
+      : canReadSource && filePath
+        ? "[src]"
+        : "[file]";
+    const linkPath = canReadSource && filePath ? filePath : undefined;
 
-    // Only make the path clickable if it points to a real file
+    // Format original display
     let originalDisplay: string;
-    if (linkPath && fs.existsSync(linkPath)) {
+    if (isBuildToolProtocol) {
+      // For build tool protocols, always show the original import path
+      originalDisplay = `${chalk.magenta(linkIndicator)} ${chalk.bold("Original:")} ${chalk.cyan(originalFile)}:${chalk.yellow(originalLine)}:${chalk.yellow(originalCol)}`;
+    } else if (linkPath && fs.existsSync(linkPath)) {
+      // For regular files, show the resolved path as clickable
       const fileUri = `file://${linkPath.replace(/\\/g, "/")}`;
       originalDisplay = `${chalk.magenta(linkIndicator)} ${chalk.bold("Original:")} ${chalk.cyan(fileUri)}:${chalk.yellow(originalLine)}:${chalk.yellow(originalCol)}`;
     } else {
+      // Fallback: show the original file path
       originalDisplay = `${chalk.magenta(linkIndicator)} ${chalk.bold("Original:")} ${chalk.cyan(originalFile)}:${chalk.yellow(originalLine)}:${chalk.yellow(originalCol)}`;
     }
 
-    const isError = message.severity === 2;
-    const label = isError ? chalk.red.bold("ERROR") : chalk.yellow.bold("WARNING");
-
-    return `${lineCol} ${label}: ${chalk.bold(message.message)}${ruleInfo}\n    ${originalDisplay}\n    ${codeFrame}`;
+    return `${lineCol} ${getLabel()}: ${chalk.bold(message.message)}${ruleInfo}\n    ${originalDisplay}\n    ${codeFrame}`;
   }
 
   // No source map info
-  const isError = message.severity === 2;
-  const label = isError ? chalk.red.bold("ERROR") : chalk.yellow.bold("WARNING");
-  return `${lineCol} ${label}: ${chalk.bold(message.message)}${ruleInfo}\n    ${codeFrame}`;
+  return `${lineCol} ${getLabel()}: ${chalk.bold(message.message)}${ruleInfo}\n    ${codeFrame}`;
 };
