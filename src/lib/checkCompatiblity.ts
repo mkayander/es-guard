@@ -190,7 +190,7 @@ export const checkCompatibility = async (config: Config): Promise<CompatibilityR
         return !m.message.includes("has no effect because you have 'noInlineConfig'");
       };
 
-      const errorMessages = result.messages.filter((m) => m.severity === 2 && isRelevantMessage(m));
+      const errorMessages = result.messages.filter((m) => m.severity === 2);
       const warningMessages = result.messages.filter((m) => m.severity === 1 && isRelevantMessage(m));
 
       // Try to remap error/warning locations using sourcemap
