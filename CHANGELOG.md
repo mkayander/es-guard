@@ -1,3 +1,10 @@
+## [1.18.1](https://github.com/mkayander/es-guard/compare/v1.18.0...v1.18.1) (2025-11-23)
+
+
+### Bug Fixes
+
+* Enhance source map handling and testing for compatibility checks ([e881b24](https://github.com/mkayander/es-guard/commit/e881b24d550259919ce8fafea5c13e69ba938c45))
+
 # [1.18.0](https://github.com/mkayander/es-guard/compare/v1.17.0...v1.18.0) (2025-11-23)
 
 
