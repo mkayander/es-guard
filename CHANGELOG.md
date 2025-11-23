@@ -1,3 +1,15 @@
+# [1.18.0](https://github.com/mkayander/es-guard/compare/v1.17.0...v1.18.0) (2025-11-23)
+
+
+### Bug Fixes
+
+* Refine error message filtering in checkCompatibility ([2089fb0](https://github.com/mkayander/es-guard/commit/2089fb0791da146e6794e66909bcfed22c57088f))
+
+
+### Features
+
+* Enhance testing capabilities and update README ([57c9111](https://github.com/mkayander/es-guard/commit/57c9111b8e689e183441207c3ff0b64f76721846))
+
 # [1.17.0](https://github.com/mkayander/es-guard/compare/v1.16.0...v1.17.0) (2025-11-23)
 
 
