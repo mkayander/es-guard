@@ -11,6 +11,7 @@ import type { ESGuardOptions, ESGuardResult } from "./lib/types.js";
 import { version } from "./version.js";
 
 export async function runESGuard(options: ESGuardOptions = {}): Promise<ESGuardResult> {
+  const startTime = process.hrtime.bigint();
   try {
     // Set global verbose mode
     setVerboseMode(options.verbose || false);
@@ -188,6 +189,13 @@ export async function runESGuard(options: ESGuardOptions = {}): Promise<ESGuardR
         );
       }
     }
+
+    // Calculate elapsed time
+    const endTime = process.hrtime.bigint();
+    const elapsedMs = Number(endTime - startTime) / 1_000_000;
+    const elapsedSeconds = (elapsedMs / 1000).toFixed(1);
+
+    console.log(`✅ Done in ${elapsedSeconds}s using es-guard v${version}`);
 
     return {
       success,
