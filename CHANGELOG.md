@@ -1,3 +1,15 @@
+# [1.14.0](https://github.com/mkayander/es-guard/compare/v1.13.2...v1.14.0) (2025-11-23)
+
+
+### Bug Fixes
+
+* Update ESLint configuration to suppress unused disable directive warnings ([92a4291](https://github.com/mkayander/es-guard/commit/92a4291a3ec401c6677ab7736617de690bf26f15))
+
+
+### Features
+
+* Update dependencies and improve test setup ([31553bd](https://github.com/mkayander/es-guard/commit/31553bd236c8acd7f7f8f34ecb19bca5f8c7935b))
+
 ## [1.13.2](https://github.com/mkayander/es-guard/compare/v1.13.1...v1.13.2) (2025-08-24)
 
 
