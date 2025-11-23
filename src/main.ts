@@ -5,6 +5,7 @@ import { checkCompatibility, formatViolationMessage } from "./lib/checkCompatibl
 import { detectProjectConfig, getConfigFileNames } from "./lib/detectTarget.js";
 import { getBrowserTargetsFromString } from "./lib/getBrowserTargets.js";
 import { setVerboseMode } from "./lib/globalState.js";
+import { pluralize } from "./lib/pluralize.js";
 import { getCurrentProjectType } from "./lib/projectType.js";
 import type { ESGuardOptions, ESGuardResult } from "./lib/types.js";
 
@@ -190,11 +191,19 @@ export async function runESGuard(options: ESGuardOptions = {}): Promise<ESGuardR
       }
     }
 
+    // Calculate statistics
+    const totalErrors = errors.reduce((sum, violation) => sum + violation.messages.length, 0);
+    const totalWarnings = warnings.reduce((sum, violation) => sum + violation.messages.length, 0);
+    const status = success ? "✅ PASSED" : "❌ FAILED";
+
     // Calculate elapsed time
     const endTime = process.hrtime.bigint();
     const elapsedMs = Number(endTime - startTime) / 1_000_000;
     const elapsedSeconds = (elapsedMs / 1000).toFixed(1);
 
+    console.log(
+      `${status} - ${totalErrors} ${pluralize("syntax error", totalErrors)}, ${totalWarnings} ${pluralize("compat warning", totalWarnings)}`,
+    );
     console.log(`✅ Done in ${elapsedSeconds}s using es-guard v${version}`);
 
     return {
