@@ -86,6 +86,7 @@ function generateCodeFrame(filePath: string, lineNum: number, columnNum: number)
   } catch {
     // ignore
   }
+
   return "";
 }
 
@@ -95,6 +96,7 @@ async function getSourceMapForFile(jsFile: string): Promise<SourceMapConsumer | 
   if (fs.existsSync(mapFile)) {
     const raw = fs.readFileSync(mapFile, "utf-8");
     const map = JSON.parse(raw);
+
     return await new SourceMapConsumer(map);
   }
   // Try to find a sourceMappingURL comment in the JS file
@@ -102,7 +104,10 @@ async function getSourceMapForFile(jsFile: string): Promise<SourceMapConsumer | 
   const match = content.match(/\/\/[#@] sourceMappingURL=([^\s]+)/);
   if (match) {
     let mapPath = match[1];
-    if (!mapPath.endsWith(".map")) return null;
+    if (!mapPath.endsWith(".map")) {
+      return null;
+    }
+
     // If relative, resolve from jsFile
     if (!path.isAbsolute(mapPath)) {
       mapPath = path.resolve(path.dirname(jsFile), mapPath);
@@ -110,9 +115,11 @@ async function getSourceMapForFile(jsFile: string): Promise<SourceMapConsumer | 
     if (fs.existsSync(mapPath)) {
       const raw = fs.readFileSync(mapPath, "utf-8");
       const map = JSON.parse(raw);
+
       return await new SourceMapConsumer(map);
     }
   }
+
   return null;
 }
 
@@ -135,6 +142,7 @@ function extractPathFromBuildToolProtocol(originalFile: string): string | null {
     if (turbopackMatch) {
       return turbopackMatch[1];
     }
+
     // Fallback: try to extract path after protocol
     const fallbackMatch = originalFile.match(/turbopack:\/\/\/[^/]*\/(.+)$/);
     if (fallbackMatch) {
@@ -147,6 +155,7 @@ function extractPathFromBuildToolProtocol(originalFile: string): string | null {
       return webpackMatch[1];
     }
   }
+
   return null;
 }
 
@@ -179,6 +188,7 @@ function resolveFilePath(extractedPath: string, baseDir: string, compiledFilePat
       if (fs.existsSync(testPath)) {
         return testPath;
       }
+
       // Stop if we've gone up too far (reached a drive root on Windows or / on Unix)
       const parentDir = path.dirname(currentDir);
       if (parentDir === currentDir) break;
@@ -255,6 +265,7 @@ export const checkCompatibility = async (config: Config): Promise<CompatibilityR
 
     if (results.length === 0) {
       console.log(`No JavaScript files found in directory: ${config.dir}`);
+
       return { errors: [], warnings: [] };
     }
 
@@ -266,6 +277,7 @@ export const checkCompatibility = async (config: Config): Promise<CompatibilityR
         if (m.message.includes("has no effect because you have 'noInlineConfig'")) {
           return false;
         }
+
         // Only include compat/compat messages or parsing errors (ruleId: null)
         return m.ruleId === "compat/compat" || m.ruleId === null;
       };
