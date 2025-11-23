@@ -1,3 +1,10 @@
+# [1.15.0](https://github.com/mkayander/es-guard/compare/v1.14.0...v1.15.0) (2025-11-23)
+
+
+### Features
+
+* Add execution time logging to runESGuard function ([31fb16a](https://github.com/mkayander/es-guard/commit/31fb16a91474eed52755534d74b0c8f987c7e963))
+
 # [1.14.0](https://github.com/mkayander/es-guard/compare/v1.13.2...v1.14.0) (2025-11-23)
 
 
