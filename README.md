@@ -60,7 +60,6 @@ es-guard -t latest build
 es-guard --browsers "> 0.5%, last 2 versions, Firefox ESR, not dead" dist
 
 
-
 # Display help information
 es-guard --help
 
@@ -135,7 +134,7 @@ if (config.target) {
 #### Advanced Usage
 
 ```typescript
-import { checkCompatibility, getBrowserTargetsFromString, validateConfig, setVerboseMode } from "es-guard";
+import { checkCompatibility, getBrowserTargetsFromString, setVerboseMode, validateConfig } from "es-guard";
 
 // Validate configuration
 validateConfig({
@@ -170,7 +169,7 @@ result.errors.forEach((violation) => {
 ES-Guard includes full TypeScript support with proper type definitions:
 
 ```typescript
-import type { Config, CompatibilityResult, Violation } from "es-guard";
+import type { CompatibilityResult, Config, Violation } from "es-guard";
 
 const config: Config = {
   dir: "dist",
