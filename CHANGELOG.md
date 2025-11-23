@@ -1,3 +1,15 @@
+# [1.16.0](https://github.com/mkayander/es-guard/compare/v1.15.1...v1.16.0) (2025-11-23)
+
+
+### Bug Fixes
+
+* Enhance error and warning message filtering in checkCompatibility ([6d33bd9](https://github.com/mkayander/es-guard/commit/6d33bd95a1b28de7d1dcb2f68cfd04ad35830eba))
+
+
+### Features
+
+* Add pluralization utility and enhance logging in runESGuard ([d504cb1](https://github.com/mkayander/es-guard/commit/d504cb120278e920e4079c3b0ea0b21f67a790fb))
+
 ## [1.15.1](https://github.com/mkayander/es-guard/compare/v1.15.0...v1.15.1) (2025-11-23)
 
 
