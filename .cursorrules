@@ -69,6 +69,119 @@ src/
 - Never write tests that solely check constants or static values
 - Object structure checks handled by TypeScript
 
+### Running Tests
+
+**All Tests:**
+
+```bash
+pnpm run test              # Build and run all tests
+pnpm run test:dev          # Build and run tests in watch mode
+pnpm run test:watch        # Run tests in watch mode (no build)
+pnpm run test:only         # Run tests without building (requires previous build)
+```
+
+**Specific Tests:**
+
+```bash
+# Run a specific test file
+pnpm run build && pnpm run test:only src/path/to/test.ts
+
+# Run a specific test by name pattern
+pnpm run build && pnpm run test:only -t "test name pattern"
+
+# Run tests matching a pattern (no build needed if already built)
+pnpm run test:only -t "pattern"
+```
+
+**Coverage:**
+
+```bash
+pnpm run coverage          # Generate coverage report
+pnpm run coverage:check    # Check coverage with verbose output
+```
+
+### Writing Tests
+
+**Test File Structure:**
+
+- Test files use `.test.ts` or `.spec.ts` extension
+- Place unit tests next to source files: `src/lib/module.test.ts`
+- Place integration tests in `src/__tests__/` directory
+- Use Vitest's `describe`, `test`/`it`, `expect` from `vitest`
+
+**Test Patterns:**
+
+1. **Unit Tests (with mocks):**
+
+```typescript
+import { vi } from "vitest";
+
+// Mock external dependencies
+const mockLintFiles = vi.fn();
+vi.mock("eslint", () => ({
+  ESLint: class {
+    lintFiles = mockLintFiles;
+  },
+}));
+
+test("should handle specific case", async () => {
+  mockLintFiles.mockResolvedValueOnce([...]);
+  // Test implementation
+});
+```
+
+2. **Integration Tests (real ESLint):**
+
+```typescript
+// No mocks - uses real ESLint
+import { checkCompatibility } from "../lib/checkCompatiblity.js";
+
+test("should detect browser compatibility issues", async () => {
+  const testFile = path.join(testDir, "test.js");
+  fs.writeFileSync(testFile, "fetch('/api');");
+
+  const result = await checkCompatibility({
+    dir: testDir,
+    target: "2015",
+    browsers: "ie 11",
+  });
+
+  expect(result.warnings.length).toBeGreaterThan(0);
+});
+```
+
+3. **Console Output Tests:**
+
+```typescript
+import { vi } from "vitest";
+
+import { runESGuard } from "../main.js";
+
+test("should output compat/compat warnings to console", async () => {
+  const consoleOutput: string[] = [];
+  const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation((...args) => {
+    consoleOutput.push(args.map(String).join(" "));
+  });
+
+  try {
+    await runESGuard({ directory: testDir, target: "2015", browsers: "ie 11" });
+    const allOutput = consoleOutput.join(" ");
+    expect(allOutput).toContain("compat/compat");
+  } finally {
+    consoleWarnSpy.mockRestore();
+  }
+});
+```
+
+**Test Best Practices:**
+
+- Use `beforeEach`/`afterEach` for setup/cleanup
+- Create temporary directories for file-based tests
+- Clean up test files/directories in `afterEach`
+- Use descriptive test names that explain what is being tested
+- Test both success and error cases
+- For browser API compatibility tests, use actual browser APIs (fetch, IntersectionObserver, etc.), not syntax features
+
 ## Architecture Guidelines
 
 ### Module Organization
@@ -98,12 +211,36 @@ src/
 ### Core Modules (`src/lib/`)
 
 - `checkCompatiblity.ts` - Main compatibility checking logic
+  - Handles source map resolution for webpack:// and turbopack:// protocols
+  - Filters messages to only include compat/compat and parsing errors (ruleId: null)
+  - Formats violation messages with source map information
 - `detectTarget.ts` - Project configuration detection
 - `getBrowserTargets.ts` - Browser target utilities
 - `validateConfig.ts` - Configuration validation
 - `projectType.ts` - Project type detection
 - `globalState.ts` - Global state management
 - `types.ts` - TypeScript type definitions
+
+### Important Implementation Details
+
+**Message Filtering:**
+
+- Only include messages where `ruleId === "compat/compat"` or `ruleId === null` (parsing errors)
+- Filter out messages containing "has no effect because you have 'noInlineConfig'"
+- This ensures only compatibility-related messages are shown
+
+**Source Map Chain Following:**
+
+- Recursively follows source map chains to find original source
+- Stops when reaching build tool protocol URLs (webpack://, turbopack://)
+- Handles multiple layers of source maps (e.g., TypeScript → JavaScript → Minified)
+
+**Path Resolution Strategy:**
+
+- For turbopack: Extract path after `[project]/` prefix
+- For webpack: Extract path after protocol prefix
+- Try baseDir first (most common), then walk up from compiled file
+- Only add common prefixes (src/, app/, etc.) if path doesn't already start with them
 
 ### CLI Interface
 
@@ -141,6 +278,9 @@ src/
 - [ ] Prettier formatting applied
 - [ ] No import cycles
 - [ ] No code duplication
+- [ ] Source map paths correctly resolved
+- [ ] Console output tests verify actual output
+- [ ] Integration tests use real ESLint (not mocks)
 
 ## Dependencies
 
@@ -177,6 +317,36 @@ src/
 - Graceful fallbacks for missing configurations
 - Detailed validation of user inputs
 - Proper error propagation through async operations
+
+## Source Map Handling
+
+### Build Tool Protocols
+
+ES-Guard supports source maps from various build tools:
+
+- **Webpack**: `webpack:///./path/to/file.ts`
+- **Turbopack**: `turbopack:///[project]/path/to/file.ts`
+
+### Source Map Resolution
+
+The `resolveFilePath` function handles path resolution with this priority:
+
+1. **Direct path from baseDir** (project root) - fastest and most common
+2. **Walk up from compiled file** - for Next.js `.next/static/chunks/` output
+3. **Common prefixes** - only if path doesn't already start with `src/`, `app/`, etc.
+
+### Key Functions
+
+- `checkIsBuildToolProtocol(filePath)` - Checks if path is webpack:// or turbopack://
+- `extractPathFromBuildToolProtocol(originalFile)` - Extracts file path from protocol URL
+- `resolveFilePath(extractedPath, baseDir, compiledFilePath?)` - Resolves to actual file system path
+- `getOriginalSourceMap(jsFile)` - Recursively follows source map chains
+
+### Display Format
+
+- Always show original import path (e.g., `turbopack:///[project]/src/file.ts`) in output
+- Do NOT show resolved file:// URI in parentheses (removed for cleaner output)
+- Use `[src]` indicator when source file is readable, `[map]` when only source map available
 
 ## Integration Points
 
