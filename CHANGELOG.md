@@ -1,3 +1,10 @@
+## [1.15.1](https://github.com/mkayander/es-guard/compare/v1.15.0...v1.15.1) (2025-11-23)
+
+
+### Bug Fixes
+
+* Update README for import order and usage examples ([715654f](https://github.com/mkayander/es-guard/commit/715654fd05dd86e1b2579cd32ff91a4521739e4a))
+
 # [1.15.0](https://github.com/mkayander/es-guard/compare/v1.14.0...v1.15.0) (2025-11-23)
 
 
