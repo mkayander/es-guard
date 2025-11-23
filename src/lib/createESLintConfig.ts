@@ -34,6 +34,11 @@ export const createESLintConfig = (target: string, browsers?: string): ESLint.Op
     ignorePatterns: [],
     overrideConfig: [
       {
+        // Disable reporting of unused eslint-disable directives
+        // These warnings are not relevant to compatibility checking
+        linterOptions: {
+          reportUnusedDisableDirectives: false,
+        },
         plugins: {
           compat,
         },

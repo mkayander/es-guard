@@ -95,6 +95,62 @@ describe("createESLintConfig", () => {
     });
   });
 
+  describe("unused disable directives behavior verification", () => {
+    const testDir = path.join(process.cwd(), "test-unused-disable-temp");
+
+    beforeEach(() => {
+      if (!fs.existsSync(testDir)) {
+        fs.mkdirSync(testDir, { recursive: true });
+      }
+
+      // Create a file with an unused eslint-disable directive
+      // This would normally trigger a warning about unused disable directive
+      const testFile = path.join(testDir, "test.js");
+      fs.writeFileSync(testFile, "// eslint-disable-next-line no-eval\nconst x = 1;\n");
+    });
+
+    afterEach(() => {
+      // Clean up test directory
+      if (fs.existsSync(testDir)) {
+        fs.rmSync(testDir, { recursive: true, force: true });
+      }
+    });
+
+    test("should not report warnings for unused eslint-disable directives", async () => {
+      const { ESLint } = await import("eslint");
+
+      // Set BROWSERSLIST env variable to override any project-level settings
+      const originalBrowserslistEnv = process.env.BROWSERSLIST;
+      process.env.BROWSERSLIST = "> 1%, last 2 versions";
+
+      try {
+        const testFile = path.join(testDir, "test.js");
+        // Provide explicit browser targets to avoid auto-determination issues
+        const config = createESLintConfig("2015", "> 1%, last 2 versions");
+        const eslint = new ESLint(config);
+        const results = await eslint.lintFiles([testFile]);
+
+        // Verify no warnings about unused disable directives
+        const allMessages = results.flatMap((r) => r.messages);
+        const unusedDisableWarnings = allMessages.filter(
+          (msg) =>
+            msg.ruleId === "eslint-comments/no-unused-disable" ||
+            msg.message.includes("Unused eslint-disable directive") ||
+            msg.message.includes("unused disable directive"),
+        );
+
+        expect(unusedDisableWarnings.length).toBe(0);
+      } finally {
+        // Restore original BROWSERSLIST env variable
+        if (originalBrowserslistEnv !== undefined) {
+          process.env.BROWSERSLIST = originalBrowserslistEnv;
+        } else {
+          delete process.env.BROWSERSLIST;
+        }
+      }
+    });
+  });
+
   describe("functional behavior", () => {
     test("should create configuration that overrides project ignore settings", () => {
       const config = createESLintConfig("2015");
