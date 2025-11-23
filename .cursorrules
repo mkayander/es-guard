@@ -61,6 +61,51 @@ src/
 - Consistent type imports required
 - Function return types inferred (not required)
 
+### Code Style Rules
+
+- **Empty lines around return statements**: Always include an empty line above a `return` statement
+- **Empty lines after early exits**: Always include an empty line below an early exit (e.g., `if (condition) return;` or `if (condition) throw error;`)
+
+**Examples:**
+
+```typescript
+// Good: Empty line above return
+function processData(data: string) {
+  if (!data) {
+    return null;
+  }
+
+  const processed = data.trim();
+  return processed;
+}
+
+// Good: Empty line below early exit
+function validate(input: string) {
+  if (!input) {
+    throw new Error("Input required");
+  }
+
+  return input.length > 0;
+}
+
+// Bad: Missing empty line above return
+function processData(data: string) {
+  if (!data) {
+    return null;
+  }
+  const processed = data.trim();
+  return processed; // Missing empty line above
+}
+
+// Bad: Missing empty line below early exit
+function validate(input: string) {
+  if (!input) {
+    throw new Error("Input required");
+  }
+  return input.length > 0; // Missing empty line below
+}
+```
+
 ### Testing Requirements
 
 - Use Vitest for testing
@@ -240,7 +285,6 @@ test("should output compat/compat warnings to console", async () => {
 - For turbopack: Extract path after `[project]/` prefix
 - For webpack: Extract path after protocol prefix
 - Try baseDir first (most common), then walk up from compiled file
-- Only add common prefixes (src/, app/, etc.) if path doesn't already start with them
 
 ### CLI Interface
 
@@ -276,6 +320,8 @@ test("should output compat/compat warnings to console", async () => {
 - [ ] Test coverage maintained
 - [ ] ESLint rules followed
 - [ ] Prettier formatting applied
+- [ ] Empty lines above return statements
+- [ ] Empty lines below early exits
 - [ ] No import cycles
 - [ ] No code duplication
 - [ ] Source map paths correctly resolved
