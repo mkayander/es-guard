@@ -14,6 +14,81 @@ export type CompatibilityResult = {
   warnings: Violation[];
 };
 
+/**
+ * Extracts a horizontal slice of a long line around the error column for minified code.
+ * Returns the modified content and adjusted column number.
+ */
+function extractMinifiedSlice(
+  raw: string,
+  lineNum: number,
+  columnNum: number,
+  contextBefore: number = 80,
+  contextAfter: number = 80,
+): { content: string; adjustedColumn: number } | null {
+  const lines = raw.split(/\r?\n/);
+  if (lineNum < 1 || lineNum > lines.length) {
+    return null;
+  }
+
+  const line = lines[lineNum - 1];
+  if (!line || line.length <= contextBefore + contextAfter) {
+    return null;
+  }
+
+  // Calculate slice boundaries
+  const start = Math.max(0, columnNum - contextBefore - 1);
+  const end = Math.min(line.length, columnNum + contextAfter);
+  const slice = line.slice(start, end);
+  const adjustedColumn = columnNum - start;
+
+  // Create modified content with the slice
+  const modifiedLines = [...lines];
+  modifiedLines[lineNum - 1] = slice;
+
+  return {
+    content: modifiedLines.join("\n"),
+    adjustedColumn,
+  };
+}
+
+/**
+ * Generates a code frame from a file path, handling both minified and non-minified code.
+ */
+function generateCodeFrame(filePath: string, lineNum: number, columnNum: number): string {
+  try {
+    const raw = fs.readFileSync(filePath, "utf-8");
+    const lines = raw.split(/\r?\n/);
+    const isMinified =
+      lines.length === 1 || (lineNum <= lines.length && lines[lineNum - 1] && lines[lineNum - 1].length > 300);
+
+    if (isMinified && lineNum <= lines.length) {
+      const slice = extractMinifiedSlice(raw, lineNum, columnNum);
+      if (slice) {
+        return (
+          "\n" +
+          codeFrameColumns(
+            slice.content,
+            { start: { line: lineNum, column: slice.adjustedColumn } },
+            { highlightCode: true, linesAbove: 0, linesBelow: 0 },
+          )
+        );
+      }
+    } else if (!isMinified) {
+      return (
+        "\n" +
+        codeFrameColumns(
+          raw,
+          { start: { line: lineNum, column: columnNum } },
+          { highlightCode: true, linesAbove: 1, linesBelow: 1 },
+        )
+      );
+    }
+  } catch {
+    // ignore
+  }
+  return "";
+}
+
 async function getSourceMapForFile(jsFile: string): Promise<SourceMapConsumer | null> {
   // Try to find a .map file next to the JS file
   const mapFile = jsFile + ".map";
@@ -273,23 +348,12 @@ export const formatViolationMessage = (
 
   // Try to print a code frame if we have a readable file path
   if (filePath && canReadSource && line) {
-    try {
-      const raw = fs.readFileSync(filePath, "utf-8");
-      const lines = raw.split(/\r?\n/);
-      const isMinified =
-        lines.length === 1 || (line <= lines.length && lines[line - 1] && lines[line - 1].length > 300);
-      if (!isMinified) {
-        codeFrame =
-          "\n" +
-          codeFrameColumns(
-            raw,
-            { start: { line, column: column || 1 } },
-            { highlightCode: true, linesAbove: 1, linesBelow: 1 },
-          );
-      }
-    } catch {
-      // ignore
-    }
+    codeFrame = generateCodeFrame(filePath, line, column || 1);
+  }
+
+  // Fallback: try to show code frame from the compiled JS file
+  if (!codeFrame && explicitFilePath && fs.existsSync(explicitFilePath) && message.line) {
+    codeFrame = generateCodeFrame(explicitFilePath, message.line, message.column || 1);
   }
 
   // If we have source-mapped info, show the original source

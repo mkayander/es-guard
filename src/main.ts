@@ -157,7 +157,7 @@ export async function runESGuard(options: ESGuardOptions = {}): Promise<ESGuardR
         for (let i = 0; i < violation.messages.length; i++) {
           const message = violation.messages[i];
           const sourceMappedMessage = violation.sourceMappedMessages?.[i];
-          const formattedMessage = formatViolationMessage(message, sourceMappedMessage, workingDir);
+          const formattedMessage = formatViolationMessage(message, sourceMappedMessage, workingDir, violation.file);
           console.error(`   ${formattedMessage}`);
         }
       }
@@ -170,7 +170,7 @@ export async function runESGuard(options: ESGuardOptions = {}): Promise<ESGuardR
         for (let i = 0; i < violation.messages.length; i++) {
           const message = violation.messages[i];
           const sourceMappedMessage = violation.sourceMappedMessages?.[i];
-          const formattedMessage = formatViolationMessage(message, sourceMappedMessage, workingDir);
+          const formattedMessage = formatViolationMessage(message, sourceMappedMessage, workingDir, violation.file);
           console.warn(`   ${formattedMessage}`);
         }
       }
