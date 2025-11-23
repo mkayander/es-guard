@@ -9,9 +9,12 @@ import type { Config, SourceMappedMessage } from "./types.js";
 // Mock ESLint to avoid actual linting during tests
 const mockLintFiles = vi.fn();
 vi.mock("eslint", () => ({
-  ESLint: vi.fn().mockImplementation(() => ({
-    lintFiles: mockLintFiles,
-  })),
+  ESLint: class {
+    constructor() {
+      // Constructor implementation
+    }
+    lintFiles = mockLintFiles;
+  },
 }));
 
 describe("checkCompatibility", () => {
@@ -35,6 +38,8 @@ describe("checkCompatibility", () => {
   });
 
   test("should return empty result when no JavaScript files found", async () => {
+    mockLintFiles.mockResolvedValueOnce([]);
+
     const config: Config = {
       dir: testDir,
       target: "2015",
@@ -46,6 +51,8 @@ describe("checkCompatibility", () => {
   });
 
   test("should work with auto-determined browsers", async () => {
+    mockLintFiles.mockResolvedValueOnce([]);
+
     const config: Config = {
       dir: testDir,
       target: "2015",
@@ -145,6 +152,8 @@ describe("checkCompatibility", () => {
   });
 
   test("should handle directory that does not exist", async () => {
+    mockLintFiles.mockResolvedValueOnce([]);
+
     const config: Config = {
       dir: path.join(testDir, "nonexistent"),
       target: "2015",
@@ -156,6 +165,8 @@ describe("checkCompatibility", () => {
   });
 
   test("should handle empty directory", async () => {
+    mockLintFiles.mockResolvedValueOnce([]);
+
     const config: Config = {
       dir: testDir,
       target: "2015",
