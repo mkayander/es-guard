@@ -1,9 +1,10 @@
 import * as fs from "fs";
 import * as path from "path";
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { checkCompatibility } from "../lib/checkCompatiblity.js";
 import type { Config } from "../lib/types.js";
+import { runESGuard } from "../main.js";
 
 describe("ESLint Integration Tests", () => {
   const testDir = path.join(process.cwd(), "test-eslint-temp");
@@ -164,6 +165,77 @@ describe("ESLint Integration Tests", () => {
       expect(typeof result).toBe("object");
       expect(Array.isArray(result.errors)).toBe(true);
       expect(Array.isArray(result.warnings)).toBe(true);
+    }
+  });
+
+  test("should output compat/compat warnings to console", async () => {
+    // Create a JavaScript file with browser APIs that will trigger compat/compat warnings
+    // Using browser APIs that are not supported in IE 11 (not syntax features)
+    const testFile = path.join(testDir, "incompatible.js");
+    const incompatibleCode = `
+      // Browser APIs that trigger compat/compat warnings for IE 11
+      fetch('/api/data');
+      const observer = new IntersectionObserver(() => {});
+      const worker = new Worker('worker.js');
+    `;
+    fs.writeFileSync(testFile, incompatibleCode);
+
+    // Store captured console output
+    const consoleOutput: string[] = [];
+
+    // Capture console.warn calls and store the output
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation((...args: unknown[]) => {
+      consoleOutput.push(args.map((arg) => String(arg)).join(" "));
+    });
+
+    // Capture console.error calls (in case warnings are logged as errors)
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
+      consoleOutput.push(args.map((arg) => String(arg)).join(" "));
+    });
+
+    try {
+      // Run es-guard which will output to console
+      await runESGuard({
+        directory: testDir,
+        target: "2015",
+        browsers: "ie 11",
+      });
+
+      // Collect all console output into a single string
+      const allOutput = consoleOutput.join(" ");
+
+      // First verify that warnings were actually found by checking the result
+      // This helps debug if the issue is with code generation or console capture
+      const { checkCompatibility } = await import("../lib/checkCompatiblity.js");
+      const result = await checkCompatibility({
+        dir: testDir,
+        target: "2015",
+        browsers: "ie 11",
+      });
+
+      // Verify that warnings exist in the result (browser API compat issues are warnings)
+      expect(result.warnings.length).toBeGreaterThan(0);
+      expect(result.warnings.some((w) => w.file.includes("incompatible.js"))).toBe(true);
+
+      // Verify that compat/compat warning appears in console output
+      expect(allOutput).toContain("compat/compat");
+      expect(allOutput).toContain("incompatible.js");
+
+      // Verify the warning message mentions the compatibility issue
+      // The exact message may vary, but should mention the browser API or IE 11
+      const hasCompatibilityMessage =
+        allOutput.includes("compat/compat") ||
+        allOutput.includes("IE 11") ||
+        allOutput.includes("not supported") ||
+        allOutput.includes("compatibility") ||
+        allOutput.includes("fetch") ||
+        allOutput.includes("IntersectionObserver") ||
+        allOutput.includes("Worker");
+
+      expect(hasCompatibilityMessage).toBe(true);
+    } finally {
+      consoleWarnSpy.mockRestore();
+      consoleErrorSpy.mockRestore();
     }
   });
 });

@@ -186,8 +186,14 @@ export const checkCompatibility = async (config: Config): Promise<CompatibilityR
 
     for (const result of results) {
       // Filter out warnings about noInlineConfig having no effect
+      // Also only include compat/compat messages and parsing errors (ruleId: null)
       const isRelevantMessage = (m: Linter.LintMessage): boolean => {
-        return !m.message.includes("has no effect because you have 'noInlineConfig'");
+        // Filter out noInlineConfig messages
+        if (m.message.includes("has no effect because you have 'noInlineConfig'")) {
+          return false;
+        }
+        // Only include compat/compat messages or parsing errors (ruleId: null)
+        return m.ruleId === "compat/compat" || m.ruleId === null;
       };
 
       const errorMessages = result.messages.filter((m) => m.severity === 2 && isRelevantMessage(m));

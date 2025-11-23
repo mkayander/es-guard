@@ -30,6 +30,8 @@
     "start": "node dist/cli.js",
     "test:dev": "npm run build && vitest",
     "test": "npm run build && vitest run",
+    "test:watch": "vitest",
+    "test:only": "vitest run",
     "test:junit": "npm run build && vitest run --reporter=junit --outputFile=test-report.junit.xml",
     "test:junit:coverage": "npm run build && vitest run --reporter=junit --outputFile=test-report.junit.xml --coverage",
     "coverage": "vitest run --coverage",

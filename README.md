@@ -318,8 +318,20 @@ npm run dev
 ### Testing
 
 ```bash
-npm test
-npm run test
+# Run all tests
+pnpm run test
+
+# Run tests in watch mode
+pnpm run test:dev
+
+# Run a specific test file
+pnpm run build && pnpm run test:only src/path/to/test.ts
+
+# Run a specific test by name
+pnpm run build && pnpm run test:only -t "test name"
+
+# Run tests without building first (requires previous build)
+pnpm run test:only -t "test name"
 ```
 
 ### Linting
