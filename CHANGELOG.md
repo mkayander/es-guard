@@ -1,3 +1,10 @@
+# [1.17.0](https://github.com/mkayander/es-guard/compare/v1.16.0...v1.17.0) (2025-11-23)
+
+
+### Features
+
+* Enhance error message formatting in runESGuard ([a803fb5](https://github.com/mkayander/es-guard/commit/a803fb582569860414d2e2d93a11881771c16e6c))
+
 # [1.16.0](https://github.com/mkayander/es-guard/compare/v1.15.1...v1.16.0) (2025-11-23)
 
 
