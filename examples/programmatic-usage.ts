@@ -1,17 +1,17 @@
 // TypeScript example: Programmatic usage of es-guard
 import {
   checkCompatibility,
-  detectProjectConfig,
-  getBrowserTargetsFromString,
-  validateConfig,
-  getCurrentProjectType,
-  setVerboseMode,
-  runESGuard,
-  type Config,
   type CompatibilityResult,
-  type Violation,
+  type Config,
+  detectProjectConfig,
   type ESGuardOptions,
   type ESGuardResult,
+  getBrowserTargetsFromString,
+  getCurrentProjectType,
+  runESGuard,
+  setVerboseMode,
+  validateConfig,
+  type Violation,
 } from "es-guard";
 import path from "path";
 

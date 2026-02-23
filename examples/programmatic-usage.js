@@ -3,9 +3,9 @@ import {
   checkCompatibility,
   detectProjectConfig,
   getBrowserTargetsFromString,
-  validateConfig,
   getCurrentProjectType,
   setVerboseMode,
+  validateConfig,
 } from "es-guard";
 
 // Example 1: Basic compatibility checking

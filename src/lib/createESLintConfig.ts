@@ -19,11 +19,7 @@ const getEcmaVersion = (target: string): Linter.EcmaVersion => {
  * This ensures that es-guard can scan ALL files in the target directory,
  * including those that would normally be excluded by .eslintignore or other project settings.
  */
-export const createESLintConfig = (
-  target: string,
-  browsers?: string,
-  skipCompatWarnings?: boolean,
-): ESLint.Options => {
+export const createESLintConfig = (target: string, browsers?: string, skipCompatWarnings?: boolean): ESLint.Options => {
   // Convert target year to ECMAScript version number using the validation function
   const ecmaVersion = getEcmaVersion(target);
 
