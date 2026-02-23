@@ -1,3 +1,15 @@
+# [1.19.0](https://github.com/mkayander/es-guard/compare/v1.18.1...v1.19.0) (2026-02-23)
+
+
+### Bug Fixes
+
+* Update examples for programmatic usage and ESLint config ([ce8326a](https://github.com/mkayander/es-guard/commit/ce8326a1978c06adaaaba76fdd812eec42fe9246))
+
+
+### Features
+
+* Add --no-compat option to CLI for disabling compat/compat rule ([252a2de](https://github.com/mkayander/es-guard/commit/252a2de8e66213e89769495b0c329682cf2912de))
+
 ## [1.18.1](https://github.com/mkayander/es-guard/compare/v1.18.0...v1.18.1) (2025-11-23)
 
 ### Bug Fixes
