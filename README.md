@@ -220,6 +220,7 @@ jobs:
 
 | `-v, --verbose` | Enable verbose output | `false` |
 | `--skip` | Continue on compatibility errors | `false` |
+| `--no-compat` | Disable compat/compat rule - only report syntax errors | `false` |
 
 ### ES Target Versions
 

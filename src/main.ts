@@ -148,6 +148,7 @@ export async function runESGuard(options: ESGuardOptions = {}): Promise<ESGuardR
       dir: scanDirectory,
       target: target,
       browsers: browserTargets,
+      skipCompatWarnings: options.skipCompatWarnings,
     });
 
     if (errors.length > 0) {

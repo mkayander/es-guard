@@ -79,6 +79,12 @@ describe("createESLintConfig", () => {
 
       expect(config.overrideConfig?.[0]?.rules?.["compat/compat"]).toBe("warn");
     });
+
+    test("should disable compat/compat rule when skipCompatWarnings is true", () => {
+      const config = createESLintConfig("2015", undefined, true);
+
+      expect(config.overrideConfig?.[0]?.rules?.["compat/compat"]).toBe("off");
+    });
   });
 
   describe("language options", () => {

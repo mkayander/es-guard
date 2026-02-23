@@ -26,6 +26,7 @@ program
 
   .option("-v, --verbose", "Enable verbose output showing detailed detection process and configuration information")
   .option("--skip", "Do not exit with error code when compatibility errors are found")
+  .option("--no-compat", "Disable compat/compat rule - only report syntax errors, not browser compatibility warnings")
   .addHelpText(
     "after",
     `
@@ -39,6 +40,7 @@ Examples:
   es-guard --target 2017 --browsers "> 0.5%, last 2 versions" dist
   es-guard --verbose                 # Auto-detect with detailed detection information
   es-guard --skip                    # Auto-detect and continue even if compatibility errors are found
+  es-guard --no-compat               # Only check syntax, skip browser compatibility warnings
 
 
 Auto-detection searches for ES target in:
@@ -88,6 +90,7 @@ interface CliOptions {
   browsers?: string;
   verbose?: boolean;
   skip?: boolean;
+  compat?: boolean; // Commander uses --no-compat, so the option becomes compat: false
 }
 
 // Main CLI action
@@ -96,6 +99,7 @@ program.action(async (directory: string | undefined, options: CliOptions) => {
     const result = await runESGuard({
       ...options,
       directory,
+      skipCompatWarnings: options.compat === false,
     });
 
     if (!result.success && !options.skip) {

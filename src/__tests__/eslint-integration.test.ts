@@ -238,4 +238,24 @@ describe("ESLint Integration Tests", () => {
       consoleErrorSpy.mockRestore();
     }
   });
+
+  test("should not report compat warnings when skipCompatWarnings is true", async () => {
+    const testFile = path.join(testDir, "incompatible-skip.js");
+    const incompatibleCode = `
+      fetch('/api/data');
+      const observer = new IntersectionObserver(() => {});
+    `;
+    fs.writeFileSync(testFile, incompatibleCode);
+
+    const { checkCompatibility } = await import("../lib/checkCompatiblity.js");
+    const result = await checkCompatibility({
+      dir: testDir,
+      target: "2015",
+      browsers: "ie 11",
+      skipCompatWarnings: true,
+    });
+
+    expect(result.warnings).toHaveLength(0);
+    expect(result.errors).toHaveLength(0);
+  });
 });

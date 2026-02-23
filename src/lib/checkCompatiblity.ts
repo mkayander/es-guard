@@ -255,7 +255,7 @@ export const checkCompatibility = async (config: Config): Promise<CompatibilityR
     process.env.BROWSERSLIST = config.browsers;
   }
 
-  const eslint = new ESLint(createESLintConfig(config.target, config.browsers));
+  const eslint = new ESLint(createESLintConfig(config.target, config.browsers, config.skipCompatWarnings));
   const errors: Violation[] = [];
   const warnings: Violation[] = [];
 

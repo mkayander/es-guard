@@ -16,6 +16,8 @@ export type Config = {
   dir: string;
   target: string;
   browsers?: string;
+  /** When true, disables compat/compat rule - only syntax errors will be reported */
+  skipCompatWarnings?: boolean;
 };
 
 export type ProjectType = "nextjs" | "vite" | "webpack" | "rollup" | "parcel" | "generic";
@@ -26,6 +28,8 @@ export interface ESGuardOptions {
   browsers?: string;
   verbose?: boolean;
   skip?: boolean;
+  /** When true, disables compat/compat rule - only syntax errors will be reported */
+  skipCompatWarnings?: boolean;
   directory?: string;
   workingDir?: string;
 }
