@@ -208,7 +208,7 @@ async function getOriginalSourceMap(
   jsFile: string,
 ): Promise<{ consumer: SourceMapConsumer; originalFile?: string } | null> {
   let currentFile = jsFile;
-  let consumer: SourceMapConsumer | null = null;
+  let consumer: SourceMapConsumer | null;
   let originalFile: string | undefined;
 
   // Follow the source map chain
