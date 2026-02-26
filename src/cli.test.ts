@@ -177,6 +177,22 @@ describe("CLI Tests", () => {
     }).toThrow();
   });
 
+  test("should pass with --no-compat when only compat warnings would exist", () => {
+    const testFile = path.join(testDir, "browser-apis.js");
+    fs.writeFileSync(
+      testFile,
+      "fetch('/api');\nconst observer = new IntersectionObserver(() => {});\n",
+    );
+
+    const result = execSync(`node "${CLI_CMD}" -t 2015 -b "ie 11" --no-compat "${testDir}"`, {
+      encoding: "utf8",
+      cwd: process.cwd(),
+    });
+
+    expect(result).toContain("PASSED");
+    expect(result).toContain("No compatibility errors found");
+  });
+
   test("should auto-detect from CWD when no config in target directory", () => {
     // Create a test file in a subdirectory
     const subDir = path.join(testDir, "subdir");

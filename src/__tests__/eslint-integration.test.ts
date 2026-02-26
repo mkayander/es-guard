@@ -258,4 +258,21 @@ describe("ESLint Integration Tests", () => {
     expect(result.warnings).toHaveLength(0);
     expect(result.errors).toHaveLength(0);
   });
+
+  test("should report syntax errors when skipCompatWarnings is true", async () => {
+    const testFile = path.join(testDir, "syntax-error.js");
+    fs.writeFileSync(testFile, "const x = ;"); // Invalid: missing expression after =
+
+    const result = await checkCompatibility({
+      dir: testDir,
+      target: "2015",
+      browsers: "ie 11",
+      skipCompatWarnings: true,
+    });
+
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].file).toContain("syntax-error.js");
+    expect(result.errors[0].messages.some((m) => m.ruleId === null)).toBe(true);
+    expect(result.warnings).toHaveLength(0);
+  });
 });
