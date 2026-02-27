@@ -533,6 +533,51 @@ describe("detectTarget", () => {
 
       expect(detectOutputDir(tempDir)).toBeNull();
     });
+
+    it("should parse vite.config.ts with ESM import via regex (no eval)", () => {
+      writeFile(
+        "vite.config.ts",
+        `import { defineConfig } from "vite";
+
+export default defineConfig({
+  build: {
+    target: "es2022",
+    outDir: "build",
+  },
+});`,
+      );
+
+      expect(detectTarget(tempDir)).toEqual({ target: "2022", source: "vite.config.ts" });
+      expect(detectOutputDir(tempDir)).toEqual({ outputDir: "build", source: "vite.config.ts" });
+    });
+
+    it("should parse vite.config.ts with build.target esnext", () => {
+      writeFile(
+        "vite.config.ts",
+        `import { defineConfig } from "vite";
+
+export default defineConfig({
+  build: {
+    target: "esnext",
+  },
+});`,
+      );
+
+      expect(detectTarget(tempDir)).toEqual({ target: "latest", source: "vite.config.ts" });
+    });
+
+    it("should parse vite.config.mjs with ESM via regex", () => {
+      writeFile(
+        "vite.config.mjs",
+        `export default {
+  esbuild: { target: "es2020" },
+  build: { outDir: "dist" },
+};`,
+      );
+
+      expect(detectTarget(tempDir)).toEqual({ target: "2020", source: "vite.config.mjs" });
+      expect(detectOutputDir(tempDir)).toEqual({ outputDir: "dist", source: "vite.config.mjs" });
+    });
   });
 
   describe("webpack config parsing edge cases", () => {
@@ -688,6 +733,37 @@ last 2 versions`,
   });
 
   describe("tsconfig parsing edge cases", () => {
+    it("should parse tsconfig.json with comments (e.g. SvelteKit-style)", () => {
+      writeFile(
+        "tsconfig.json",
+        `{
+          "extends": "./.svelte-kit/tsconfig.json",
+          "compilerOptions": {
+            "target": "ES2022",
+            "moduleResolution": "bundler"
+          }
+          // Path aliases are handled by svelte
+        }`,
+      );
+
+      expect(detectTarget(tempDir)).toEqual({ target: "2022", source: "tsconfig.json" });
+    });
+
+    it("should parse tsconfig.json with trailing commas", () => {
+      writeFile(
+        "tsconfig.json",
+        `{
+          "compilerOptions": {
+            "target": "ES2020",
+            "outDir": "./dist",
+          },
+        }`,
+      );
+
+      expect(detectTarget(tempDir)).toEqual({ target: "2020", source: "tsconfig.json" });
+      expect(detectOutputDir(tempDir)).toEqual({ outputDir: "./dist", source: "tsconfig.json" });
+    });
+
     it("should handle tsconfig.json without compilerOptions", () => {
       writeFile(
         "tsconfig.json",

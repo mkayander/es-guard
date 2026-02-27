@@ -43,6 +43,69 @@ describe("utils", () => {
         fs.rmSync(tempDir, { recursive: true, force: true });
       }
     });
+
+    it("should parse JSON with single-line comments", () => {
+      const tempDir = fs.mkdtempSync("es-guard-test-");
+      const testFile = path.join(tempDir, "test.json");
+
+      try {
+        const content = `{
+          "name": "test",
+          // inline comment
+          "version": "1.0.0"
+        }`;
+        fs.writeFileSync(testFile, content);
+
+        const result = readJsonFile(testFile);
+        expect(result).toEqual({ name: "test", version: "1.0.0" });
+      } finally {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
+
+    it("should parse JSON with multi-line comments", () => {
+      const tempDir = fs.mkdtempSync("es-guard-test-");
+      const testFile = path.join(tempDir, "test.json");
+
+      try {
+        const content = `{
+          "compilerOptions": {
+            "target": "ES2020"
+          }
+          /* Path aliases are handled by svelte
+           * except $lib which is handled separately
+           */
+        }`;
+        fs.writeFileSync(testFile, content);
+
+        const result = readJsonFile(testFile);
+        expect(result).toEqual({ compilerOptions: { target: "ES2020" } });
+      } finally {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
+
+    it("should parse JSON with trailing commas", () => {
+      const tempDir = fs.mkdtempSync("es-guard-test-");
+      const testFile = path.join(tempDir, "test.json");
+
+      try {
+        const content = `{
+          "compilerOptions": {
+            "target": "ES2020",
+            "outDir": "./dist",
+          },
+        }`;
+        fs.writeFileSync(testFile, content);
+
+        const result = readJsonFile(testFile);
+        expect(result).toEqual({
+          compilerOptions: { target: "ES2020", outDir: "./dist" },
+        });
+      } finally {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
   });
 
   describe("readTextFile", () => {
