@@ -14,6 +14,9 @@ importers:
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^6.0.2
         version: 6.0.2(prettier@3.8.1)
+      baseline-browser-mapping:
+        specifier: ^2.10.0
+        version: 2.10.0
       chalk:
         specifier: ^5.6.2
         version: 5.6.2
@@ -29,6 +32,9 @@ importers:
       source-map:
         specifier: ^0.7.6
         version: 0.7.6
+      strip-json-comments:
+        specifier: ^5.0.3
+        version: 5.0.3
     devDependencies:
       '@eslint/js':
         specifier: ^10.0.1
@@ -2049,6 +2055,10 @@ packages:
   strip-json-comments@2.0.1:
     resolution: {integrity: sha512-4gB8na07fecVVkOI6Rs4e7T6NOTki5EmL7TUduTs6bu3EdnSycntVJ4re8kgZA+wx9IueI2Y11bfbgwtzuE0KQ==}
     engines: {node: '>=0.10.0'}
+
+  strip-json-comments@5.0.3:
+    resolution: {integrity: sha512-1tB5mhVo7U+ETBKNf92xT4hrQa3pm0MZ0PQvuDnWgAAGHDsfp4lPSpiS6psrSiet87wyGPh9ft6wmhOMQ0hDiw==}
+    engines: {node: '>=14.16'}
 
   super-regex@1.1.0:
     resolution: {integrity: sha512-WHkws2ZflZe41zj6AolvvmaTrWds/VuyeYr9iPVv/oQeaIoVxMKaushfFWpOGDT+GuBrM/sVqF8KUCYQlSSTdQ==}
@@ -4210,6 +4220,8 @@ snapshots:
   strip-final-newline@4.0.0: {}
 
   strip-json-comments@2.0.1: {}
+
+  strip-json-comments@5.0.3: {}
 
   super-regex@1.1.0:
     dependencies:
