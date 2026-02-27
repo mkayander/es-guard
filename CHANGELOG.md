@@ -1,3 +1,10 @@
+# [1.20.0](https://github.com/mkayander/es-guard/compare/v1.19.0...v1.20.0) (2026-02-27)
+
+
+### Features
+
+* Enhance target detection and JSON parsing capabilities ([16fefd4](https://github.com/mkayander/es-guard/commit/16fefd44a51b28c76e6471053adfbfd6863cf767))
+
 # [1.19.0](https://github.com/mkayander/es-guard/compare/v1.18.1...v1.19.0) (2026-02-23)
 
 
