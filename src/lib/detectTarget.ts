@@ -68,6 +68,7 @@ const TARGET_MAP: Record<string, string> = {
   es2015: "2015",
   es6: "2015",
   es5: "2009",
+  esnext: "latest",
 };
 
 /**
@@ -437,11 +438,13 @@ const parseBabelRc = (filePath: string): ParserResult => {
 };
 
 /**
- * Parse vite.config.js/ts for both target and output directory
+ * Parse vite.config.js/ts for both target and output directory.
+ * ESM files (.ts, .mjs) use regex-only since evaluateJsFile fails on import syntax.
  */
 const parseViteConfig = (filePath: string): ParserResult => {
   const content = readTextFile(filePath);
-  const config = evaluateJsFile(filePath);
+  const ext = path.extname(filePath);
+  const isEsm = ext === ".ts" || ext === ".mjs";
 
   const result: { target?: string; outputDir?: string } = {};
 
@@ -455,9 +458,27 @@ const parseViteConfig = (filePath: string): ParserResult => {
     }
   }
 
-  // Look for output directory
-  if (isViteConfig(config) && config.build?.outDir) {
-    result.outputDir = config.build.outDir;
+  // Look for build.target (e.g. target: "esnext")
+  const buildTargetMatch = content.match(/build\s*:\s*\{[^}]*target\s*:\s*['"`]([^'"`]+)['"`]/s);
+  if (buildTargetMatch && !result.target) {
+    const target = buildTargetMatch[1];
+    const mappedTarget = TARGET_MAP[target];
+    if (mappedTarget) {
+      result.target = mappedTarget;
+    }
+  }
+
+  // Look for output directory: eval for .js/.cjs, regex for ESM
+  if (isEsm) {
+    const outDirMatch = content.match(/build\s*:\s*\{[^}]*outDir\s*:\s*['"`]([^'"`]+)['"`]/s);
+    if (outDirMatch) {
+      result.outputDir = outDirMatch[1];
+    }
+  } else {
+    const config = evaluateJsFile(filePath);
+    if (isViteConfig(config) && config.build?.outDir) {
+      result.outputDir = config.build.outDir;
+    }
   }
 
   return result;

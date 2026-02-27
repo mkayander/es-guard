@@ -1,12 +1,14 @@
 import * as fs from "fs";
 import * as path from "path";
+import stripJsonComments from "strip-json-comments";
 
 /**
- * Helper to read and parse JSON file safely
+ * Helper to read and parse JSON file safely.
+ * Supports JSON with comments (e.g. tsconfig.json).
  */
 export const readJsonFile = (filePath: string): unknown => {
   const content = fs.readFileSync(filePath, "utf-8");
-  return JSON.parse(content);
+  return JSON.parse(stripJsonComments(content, { trailingCommas: true }));
 };
 
 /**
